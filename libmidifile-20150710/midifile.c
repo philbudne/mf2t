@@ -48,7 +48,9 @@
 #include <string.h>
 #include "midifile.h"
 
+#ifdef _WIN32
 #include "windows.h"
+#endif
 
 #define NULLFUNC 0
 
@@ -110,19 +112,11 @@ static void badbyte(int c)
 
 static int egetc(void) /* read a single character and abort on EOF */
 {
-	
     int c = (*Mf_getc)();
 
-	//if (feof(stdin))
-	//OutputDebugStringA("%d",i++);
-	
-
-//    if (c == EOF)
-	if (feof(stdin))
+    if ((c == EOF) || feof(stdin))
         mferror("premature EOF");
- 
-	
-	Mf_toberead--;
+    Mf_toberead--;
     return(c);
 }
 

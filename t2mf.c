@@ -8,17 +8,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <unistd.h>
+#ifdef __linux__
+#include <unistd.h>
+#elif _WIN32
 #include <io.h>
+#include "getopt.h"
+#endif
 #include <errno.h>
 #include <ctype.h>
 #include <setjmp.h>
 #include "t2mf.h"
 #include "version.h"
-//#include "getopt.h"
-
-
-extern int optind;
 
 #ifdef NO_YYLENG_VAR
 #define	yyleng yylength

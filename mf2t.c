@@ -8,14 +8,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <unistd.h>
+#ifdef __linux__
+#include <unistd.h>
+#elif _WIN32
 #include <io.h>
+#include "getopt.h"
+#endif
 #include <errno.h>
 #include "midifile.h"
 #include "version.h"
-#include "getopt.h"
-
-
 
 static int TrkNr;
 static int TrksToDo = 1;
@@ -373,8 +374,6 @@ int main(int argc, char **argv)
                 usage();
         }
     }
-
-	char * temp = argv[optind];
 
     if (optind < argc && !freopen(argv[optind++], "rb", stdin)) {
         fprintf(stderr, "freopen (%s): %s\n", argv[optind - 1],
