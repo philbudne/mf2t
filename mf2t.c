@@ -8,9 +8,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef __linux__
+#ifndef _WIN32
 #include <unistd.h>
-#elif _WIN32
+#else
 #include <io.h>
 #include "getopt.h"
 #endif
@@ -21,7 +21,7 @@
 static int TrkNr;
 static int TrksToDo = 1;
 static int Measure, M0, Beat, Clicks;
-static long T0;
+static mf_deltat_t T0;
 
 /* options */
 
@@ -48,11 +48,11 @@ static void error(char *s)
 static void prtime(void)
 {
     if (times) {
-        long m = (Mf_currtime-T0)/Beat;
-        printf("%ld:%ld:%ld ",
+        mf_deltat_t m = (Mf_currtime-T0)/Beat;
+        printf("%d:%d:%d ",
                 m/Measure+M0, m%Measure, (Mf_currtime-T0)%Beat);
     } else
-        printf("%ld ",Mf_currtime);
+        printf("%d ",Mf_currtime);
 }
 
 static void prtext(unsigned char *p, int leng)
@@ -124,7 +124,7 @@ static char *mknote(int pitch)
     static char *Notes[] =
         { "c", "c#", "d", "d#", "e", "f", "f#", "g",
           "g#", "a", "a#", "b" };
-    static char buf[5];
+    static char buf[20];
     if (notes)
         sprintf(buf, "%s%d", Notes[pitch % 12], pitch/12);
     else
@@ -266,10 +266,10 @@ static void mykeysig(int sf, int mi)
     printf("KeySig %d %s\n", (sf>127?sf-256:sf), (mi?"minor":"major"));
 }
 
-static void mytempo(long tempo)
+static void mytempo(mf_tempo_t tempo)
 {
     prtime();
-    printf("Tempo %ld\n",tempo);
+    printf("Tempo %d\n",tempo);
 }
 
 static void mytimesig(int nn, int dd, int cc, int bb)

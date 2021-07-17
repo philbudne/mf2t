@@ -89,11 +89,12 @@ MIDIFILE_PUBLIC void (*Mf_wtempotrack)() = NULLFUNC;
 /* 1 => continued system exclusives are not collapsed */
 MIDIFILE_PUBLIC int Mf_nomerge = 0;
 /* current time in delta‐time units */
-MIDIFILE_PUBLIC long Mf_currtime = 0L;
+MIDIFILE_PUBLIC mf_deltat_t Mf_currtime = 0;
 
 /* private stuff */
-static long Mf_toberead = 0L;
-static long Mf_numbyteswritten = 0L;
+typedef int32_t mf_ssize_t;
+static mf_ssize_t Mf_toberead = 0L;
+static mf_ssize_t Mf_numbyteswritten = 0L;
 
 static void mferror(char *s)
 {
@@ -123,9 +124,11 @@ static int egetc(void) /* read a single character and abort on EOF */
 /* readvarinum – read a varying‐length number, and return the */
 /* number of characters it took. */
 
-static long readvarinum(void)
+typedef int32_t varinum_t;
+
+static varinum_t readvarinum(void)
 {
-    long value;
+    varinum_t value;
     int c;
 
     c = egetc();
@@ -140,7 +143,7 @@ static long readvarinum(void)
     return(value);
 }
 
-static long to32bit(int c1, int c2, int c3, int c4)
+static int32_t to32bit(int c1, int c2, int c3, int c4)
 {
     long value = 0L;
 
@@ -156,7 +159,7 @@ static int to16bit(int c1, int c2)
     return ((c1 & 0xff ) << 8) + (c2 & 0xff);
 }
 
-static long read32bit(void)
+static int32_t read32bit(void)
 {
     int c1, c2, c3, c4;
 
@@ -181,8 +184,8 @@ static int read16bit(void)
  * based on notes and tracks based on SMPTE times.
  *
  */
-MIDIFILE_PUBLIC float mf_ticks2sec(unsigned long ticks, int division,
-        unsigned int tempo)
+MIDIFILE_PUBLIC float mf_ticks2sec(mf_ticks_t ticks, int division,
+        mf_tempo_t tempo)
 {
     float smpte_format, smpte_resolution;
 
@@ -407,7 +410,7 @@ static int readtrack(void) /* read a track chunk */
         0, 0, 0, 0, 0, 0, 0, 0,    /* 0x00 through 0x70 */
         2, 2, 2, 2, 1, 1, 2, 0     /* 0x80 through 0xf0 */
     };
-    long varinum, lookfor;
+    varinum_t varinum, lookfor;
     int c, c1 = 0, type;
     int sysexcontinue = 0; /* 1 if last message was an unfinished sysex */
     int running = 0;       /* 1 when running status used */
@@ -566,7 +569,7 @@ static int eputc(unsigned char c)
  * has been true at least on PCs, UNIX machines, and Macintosh’s.
  *
  */
-static void write32bit(unsigned long data)
+static void write32bit(int32_t data)
 {
     eputc((unsigned)((data >> 24) & 0xff));
     eputc((unsigned)((data >> 16) & 0xff));
@@ -580,9 +583,9 @@ static void write16bit(int data)
     eputc((unsigned)(data & 0xff));
 }
 
-static void WriteVarLen(unsigned long value)
+static void WriteVarLen(varinum_t value)
 {
-    unsigned long buffer;
+    varinum_t buffer;
 
     buffer = value & 0x7f;
     while ((value >>= 7) > 0) {
@@ -639,11 +642,11 @@ static int lastmeta;                   /* last meta event type */
  *        data.
  * size – The length of the midi‐event data.
  */
-MIDIFILE_PUBLIC int mf_w_midi_event(unsigned long delta_time,
-        unsigned int type, unsigned int chan, unsigned char *data,
-        unsigned long size)
+MIDIFILE_PUBLIC int mf_w_midi_event(mf_deltat_t delta_time,
+        unsigned int type, unsigned int chan, mf_data_t *data,
+        mf_size_t size)
 {
-    int i;
+    mf_size_t i;
     unsigned char c;
 
     WriteVarLen(delta_time);
@@ -681,10 +684,10 @@ MIDIFILE_PUBLIC int mf_w_midi_event(unsigned long delta_time,
  *        data.
  * size – The length of the meta‐event data.
  */
-MIDIFILE_PUBLIC int mf_w_meta_event(unsigned long delta_time,
-        unsigned char type, unsigned char *data, unsigned long size)
+MIDIFILE_PUBLIC int mf_w_meta_event(mf_deltat_t delta_time,
+        unsigned int type, mf_data_t *data, mf_size_t size)
 {
-    int i;
+    mf_size_t i;
 
     WriteVarLen(delta_time);
     
@@ -719,10 +722,10 @@ MIDIFILE_PUBLIC int mf_w_meta_event(unsigned long delta_time,
  *        The first byte is the type (0xf0 for sysex, 0xf7 otherwise)
  * size – The length of the sysex‐event data.
  */
-MIDIFILE_PUBLIC int mf_w_sysex_event(unsigned long delta_time,
-        unsigned char *data, unsigned long size)
+MIDIFILE_PUBLIC int mf_w_sysex_event(mf_deltat_t delta_time,
+        mf_data_t *data, mf_size_t size)
 {
-    int i;
+    mf_size_t i;
 
     WriteVarLen(delta_time);
     
@@ -740,8 +743,8 @@ MIDIFILE_PUBLIC int mf_w_sysex_event(unsigned long delta_time,
     return(size);
 } /* end mf_w_sysex_event */
 
-MIDIFILE_PUBLIC void mf_w_tempo(unsigned long delta_time,
-        unsigned long tempo)
+MIDIFILE_PUBLIC void mf_w_tempo(mf_deltat_t delta_time,
+				mf_tempo_t tempo)
 {
     /* Write tempo */
     /* all tempos are written as 120 beats/minute, */

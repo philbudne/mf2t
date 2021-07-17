@@ -49,4 +49,8 @@
 #define TIMESIG	(META+1+time_signature)
 #define SMPTE	(META+1+smpte_offset)
 
+extern int yywrap ( void );
+
+typedef int32_t bankno_t;
+bankno_t bankno(char *s, int n);
 #endif

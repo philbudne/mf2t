@@ -1,6 +1,8 @@
 #ifndef MIDIFILE_H
 #define MIDIFILE_H
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -15,55 +17,62 @@ extern "C" {
 #define MIDIFILE_PUBLIC
 #endif
 
+typedef uint32_t mf_tempo_t;
+typedef uint32_t mf_size_t;
+typedef uint32_t mf_deltat_t;
+typedef uint32_t mf_ticks_t;
+typedef uint8_t mf_data_t;
+
 /* $Id: midifile.h,v 1.3 1991/11/03 21:50:50 piet Rel $ */
 /* definitions for MIDI file parsing code */
-MIDIFILE_PUBLIC extern int (*Mf_getc)();
-MIDIFILE_PUBLIC extern void (*Mf_header)();
-MIDIFILE_PUBLIC extern void (*Mf_starttrack)();
-MIDIFILE_PUBLIC extern void (*Mf_endtrack)();
-MIDIFILE_PUBLIC extern void (*Mf_on)();
-MIDIFILE_PUBLIC extern void (*Mf_off)();
-MIDIFILE_PUBLIC extern void (*Mf_pressure)();
-MIDIFILE_PUBLIC extern void (*Mf_parameter)();
-MIDIFILE_PUBLIC extern void (*Mf_pitchbend)();
-MIDIFILE_PUBLIC extern void (*Mf_program)();
-MIDIFILE_PUBLIC extern void (*Mf_chanpressure)();
-MIDIFILE_PUBLIC extern void (*Mf_sysex)();
-MIDIFILE_PUBLIC extern void (*Mf_metamisc)();
-MIDIFILE_PUBLIC extern void (*Mf_sqspecific)();
-MIDIFILE_PUBLIC extern void (*Mf_seqnum)();
-MIDIFILE_PUBLIC extern void (*Mf_text)();
-MIDIFILE_PUBLIC extern void (*Mf_eot)();
-MIDIFILE_PUBLIC extern void (*Mf_timesig)();
-MIDIFILE_PUBLIC extern void (*Mf_smpte)();
-MIDIFILE_PUBLIC extern void (*Mf_tempo)();
-MIDIFILE_PUBLIC extern void (*Mf_keysig)();
-MIDIFILE_PUBLIC extern void (*Mf_arbitrary)();
-MIDIFILE_PUBLIC extern void (*Mf_error)();
-MIDIFILE_PUBLIC extern long Mf_currtime;
+MIDIFILE_PUBLIC extern int (*Mf_getc)(void);
+MIDIFILE_PUBLIC extern void (*Mf_header)(int format, int ntrks, int division);
+MIDIFILE_PUBLIC extern void (*Mf_starttrack)(void);
+MIDIFILE_PUBLIC extern void (*Mf_endtrack)(void);
+MIDIFILE_PUBLIC extern void (*Mf_on)(int chan, int pitch, int vol);
+MIDIFILE_PUBLIC extern void (*Mf_off)(int chan, int pitch, int vol);
+MIDIFILE_PUBLIC extern void (*Mf_pressure)(int chan, int pitch, int press);
+MIDIFILE_PUBLIC extern void (*Mf_parameter)(int chan, int control, int value);
+MIDIFILE_PUBLIC extern void (*Mf_pitchbend)(int chan, int lsb, int msb);
+MIDIFILE_PUBLIC extern void (*Mf_program)(int chan, int program);
+MIDIFILE_PUBLIC extern void (*Mf_chanpressure)(int chan, int press);
+MIDIFILE_PUBLIC extern void (*Mf_sysex)(int leng, char *mess);
+MIDIFILE_PUBLIC extern void (*Mf_metamisc)(int type, int leng, char *mess);
+MIDIFILE_PUBLIC extern void (*Mf_sqspecific)(int leng, char *mess);
+MIDIFILE_PUBLIC extern void (*Mf_seqnum)(int num);
+MIDIFILE_PUBLIC extern void (*Mf_text)(int type, int leng, char *mess);
+MIDIFILE_PUBLIC extern void (*Mf_eot)(void);
+MIDIFILE_PUBLIC extern void (*Mf_timesig)(int nn, int dd, int cc, int bb);
+MIDIFILE_PUBLIC extern void (*Mf_smpte)(int hr, int mn, int se, int fr, int ff);
+MIDIFILE_PUBLIC extern void (*Mf_tempo)(mf_tempo_t tempo);
+MIDIFILE_PUBLIC extern void (*Mf_keysig)(int sf, int mi);
+MIDIFILE_PUBLIC extern void (*Mf_arbitrary)(int leng, char *mess);
+MIDIFILE_PUBLIC extern void (*Mf_error)(char *s);
+MIDIFILE_PUBLIC extern mf_deltat_t Mf_currtime;
 MIDIFILE_PUBLIC extern int Mf_nomerge;
 MIDIFILE_PUBLIC void mfread(void);
 MIDIFILE_PUBLIC void midifile(void);
 
 /* definitions for MIDI file writing code */
+
 MIDIFILE_PUBLIC extern int Mf_RunStat;
-MIDIFILE_PUBLIC extern int (*Mf_putc)();
-MIDIFILE_PUBLIC extern void (*Mf_wtrack)();
-MIDIFILE_PUBLIC extern void (*Mf_wtempotrack)();
-MIDIFILE_PUBLIC float mf_ticks2sec(unsigned long ticks, int division,
-        unsigned int tempo);
+MIDIFILE_PUBLIC extern int (*Mf_putc)(int);
+MIDIFILE_PUBLIC extern void (*Mf_wtrack)(void);
+MIDIFILE_PUBLIC extern void (*Mf_wtempotrack)(int); /* ??? */
+MIDIFILE_PUBLIC float mf_ticks2sec(mf_ticks_t ticks, int division,
+        mf_tempo_t tempo);
 MIDIFILE_PUBLIC unsigned long mf_sec2ticks(float secs, int division,
-        unsigned int tempo);
-MIDIFILE_PUBLIC void mfwrite();
-MIDIFILE_PUBLIC int mf_w_midi_event(unsigned long delta_time,
-        unsigned int type, unsigned int chan, unsigned char *data,
-        unsigned long size);
-MIDIFILE_PUBLIC int mf_w_meta_event(unsigned long delta_time,
-        unsigned char type, unsigned char *data, unsigned long size);
-MIDIFILE_PUBLIC int mf_w_sysex_event(unsigned long delta_time,
-        unsigned char *data, unsigned long size);
-MIDIFILE_PUBLIC void mf_w_tempo(unsigned long delta_time,
-        unsigned long tempo);
+        mf_tempo_t tempo);
+MIDIFILE_PUBLIC void mfwrite(int format, int ntracks, int division, FILE *fp);
+MIDIFILE_PUBLIC int mf_w_midi_event(mf_deltat_t delta_time,
+        unsigned int type, unsigned int chan, mf_data_t *data,
+        mf_size_t size);
+MIDIFILE_PUBLIC int mf_w_meta_event(mf_deltat_t delta_time,
+	unsigned int type, mf_data_t *data, mf_size_t size);
+MIDIFILE_PUBLIC int mf_w_sysex_event(mf_deltat_t delta_time,
+        mf_data_t *data, mf_size_t size);
+MIDIFILE_PUBLIC void mf_w_tempo(mf_deltat_t delta_time,
+        mf_tempo_t tempo);
 
 /* MIDI status commands most significant bit is 1 */
 #define note_off                0x80

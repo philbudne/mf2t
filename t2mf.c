@@ -43,18 +43,22 @@ extern int do_hex;
 extern int eol_seen;
 extern FILE  *yyin;
 
-static void mywritetrack();
-static void checkchan();
-static void checknote();
-static void checkval();
-static void splitval();
-static void get16val();
-static void checkcon();
-static void checkprog();
-static void checkeol();
-static void gethex();
+static void mywritetrack(void);
+static void checkchan(void);
+static void checknote(void);
+static void checkval(void);
+static void splitval(void);
+static void get16val(void);
+static void checkcon(void);
+static void checkprog(void);
+static void checkeol(void);
+static void gethex(void);
 
-void error(char *s)
+int yywrap(void) {
+    return 1;
+}
+
+static void error(char *s)
 {
     fprintf(stderr, "Error: %s\n", s);
 }
@@ -133,7 +137,7 @@ static void translate(void)
 char data[5];
 int chan;
 
-static void checkchan()
+static void checkchan(void)
 {
     if (yylex() != CH || yylex() != INT) syntax();
     if (yyval < 1 || yyval > 16)
@@ -141,7 +145,7 @@ static void checkchan()
     chan = yyval-1;
 }
 
-static void checknote()
+static void checknote(void)
 {
     int c;
     if (yylex() != NOTE || ((c=yylex()) != INT && c != NOTEVAL))
@@ -180,7 +184,7 @@ static void checknote()
     data[0] = yyval;
 }
 
-static void checkval()
+static void checkval(void)
 {
     if (yylex() != VAL || yylex() != INT) syntax();
     if (yyval < 0 || yyval > 127)
@@ -188,7 +192,7 @@ static void checkval()
     data[1] = yyval;
 }
 
-static void splitval()
+static void splitval(void)
 {
     if (yylex() != VAL || yylex() != INT) syntax();
     if (yyval < 0 || yyval > 16383)
@@ -197,7 +201,7 @@ static void splitval()
     data[1] = yyval/128;
 }
 
-static void get16val()
+static void get16val(void)
 {
     if (yylex() != VAL || yylex() != INT) syntax();
     if (yyval < 0 || yyval > 65535)
@@ -206,7 +210,7 @@ static void get16val()
     data[1] = yyval&0xff;
 }
 
-static void checkcon()
+static void checkcon(void)
 {
     if (yylex() != CON || yylex() != INT)
         syntax();
@@ -215,7 +219,7 @@ static void checkcon()
     data[0] = yyval;
 }
 
-static void checkprog()
+static void checkprog(void)
 {
     if (yylex() != PROG || yylex() != INT) syntax();
     if (yyval < 0 || yyval > 127)
@@ -223,7 +227,7 @@ static void checkprog()
     data[0] = yyval;
 }
 
-static void checkeol()
+static void checkeol(void)
 {
     if (eol_seen) return;
     if (yylex() != EOL) {
@@ -232,7 +236,7 @@ static void checkeol()
     }
 }
 
-static void gethex()
+static void gethex(void)
 {
     int c;
     buflen = 0;
@@ -274,9 +278,9 @@ rescan:
                     case '\r':
                     case '\n':
                         while ((c=yytext[i++]) == ' ' || c == '\t' ||
-                                c == '\r' || c == '\n')
+			       c == '\r' || c == '\n')
                             /* skip whitespace */;
-                            goto rescan; /* sorry EWD :=) */
+			goto rescan; /* sorry EWD :=) */
                 }
             }
             buffer[buflen++] = c;
@@ -302,9 +306,9 @@ rescan:
     else prs_error("String or hex input expected");
 }
 
-long bankno(char *s, int n)
+bankno_t bankno(char *s, int n)
 {
-    long res = 0;
+    bankno_t res = 0;
     int c;
     while (n-- > 0) {
         c = (*s++);
@@ -322,8 +326,8 @@ long bankno(char *s, int n)
 static void mywritetrack()
 {
     int opcode, c;
-    long currtime = 0;
-    long newtime, delta;
+    volatile mf_deltat_t currtime = 0;
+    mf_deltat_t newtime, delta;
     int i, k;
  
     while ((opcode = yylex()) == EOL);
@@ -336,6 +340,7 @@ static void mywritetrack()
         switch (yylex()) {
             case MTRK:
                 prs_error("Unexpected MTrk");
+		return;			/* PLB */
             case EOF:
                 err_cont = 0;
                 error("Unexpected EOF");
@@ -449,7 +454,7 @@ static void mywritetrack()
                         break;
 
                     case SEQNR:
-                        get16val ("SeqNr");
+                        get16val ();
                         mf_w_meta_event(delta, sequence_number,
                                 (unsigned char *)data, 2L);
                         break;
