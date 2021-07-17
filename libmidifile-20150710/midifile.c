@@ -46,6 +46,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "midifile.h"
 
 #ifdef _WIN32
@@ -56,63 +57,45 @@
 
 /* public stuff */
 
-/* Functions to be called while processing the MIDI file. */
-MIDIFILE_PUBLIC int (*Mf_getc)() = NULLFUNC;
-MIDIFILE_PUBLIC void (*Mf_error)() = NULLFUNC;
-MIDIFILE_PUBLIC void (*Mf_header)() = NULLFUNC;
-MIDIFILE_PUBLIC void (*Mf_starttrack)() = NULLFUNC;
-MIDIFILE_PUBLIC void (*Mf_endtrack)() = NULLFUNC;
-MIDIFILE_PUBLIC void (*Mf_on)() = NULLFUNC;
-MIDIFILE_PUBLIC void (*Mf_off)() = NULLFUNC;
-MIDIFILE_PUBLIC void (*Mf_pressure)() = NULLFUNC;
-MIDIFILE_PUBLIC void (*Mf_parameter)() = NULLFUNC;
-MIDIFILE_PUBLIC void (*Mf_pitchbend)() = NULLFUNC;
-MIDIFILE_PUBLIC void (*Mf_program)() = NULLFUNC;
-MIDIFILE_PUBLIC void (*Mf_chanpressure)() = NULLFUNC;
-MIDIFILE_PUBLIC void (*Mf_sysex)() = NULLFUNC;
-MIDIFILE_PUBLIC void (*Mf_arbitrary)() = NULLFUNC;
-MIDIFILE_PUBLIC void (*Mf_metamisc)() = NULLFUNC;
-MIDIFILE_PUBLIC void (*Mf_seqnum)() = NULLFUNC;
-MIDIFILE_PUBLIC void (*Mf_eot)() = NULLFUNC;
-MIDIFILE_PUBLIC void (*Mf_smpte)() = NULLFUNC;
-MIDIFILE_PUBLIC void (*Mf_tempo)() = NULLFUNC;
-MIDIFILE_PUBLIC void (*Mf_timesig)() = NULLFUNC;
-MIDIFILE_PUBLIC void (*Mf_keysig)() = NULLFUNC;
-MIDIFILE_PUBLIC void (*Mf_sqspecific)() = NULLFUNC;
-MIDIFILE_PUBLIC void (*Mf_text)() = NULLFUNC;
-
-/* Functions to implement in order to write a MIDI file */
-MIDIFILE_PUBLIC int (*Mf_putc)() = NULLFUNC;
-MIDIFILE_PUBLIC void (*Mf_wtrack)() = NULLFUNC;
-MIDIFILE_PUBLIC void (*Mf_wtempotrack)() = NULLFUNC;
+/* declare pointers to read/write functions */
+#define MIDIFILE_FUNC(RET,NAME,ARGS) MIDIFILE_PUBLIC RET (*NAME)ARGS = NULLFUNC;
+MIDIFILE_FUNCTIONS
+#undef MIDIFILE_FUNC
 
 /* 1 => continued system exclusives are not collapsed */
 MIDIFILE_PUBLIC int Mf_nomerge = 0;
+
 /* current time in delta‐time units */
 MIDIFILE_PUBLIC mf_deltat_t Mf_currtime = 0;
 
+/* PLB: log output to stderr */
+MIDIFILE_PUBLIC int Mf_trace_output = 0;
+
+#define TRACE_FUNC if (Mf_trace_output) fprintf(stderr, "%s\n", __func__)
+#define TRACE_EOL if (Mf_trace_output) fprintf(stderr, "\n")
+
 /* private stuff */
 typedef int32_t mf_ssize_t;
-static mf_ssize_t Mf_toberead = 0L;
-static mf_ssize_t Mf_numbyteswritten = 0L;
+static mf_ssize_t Mf_toberead = 0;
+static mf_ssize_t Mf_numbyteswritten = 0;
 
-static void mferror(char *s)
-{
+static void
+mferror(char *s) {
     if (Mf_error)
         (*Mf_error)(s);
     exit(1);
 }
 
-static void badbyte(int c)
-{
+static void
+badbyte(int c) {
     char buff[32];
 
     (void) sprintf(buff,"unexpected byte: 0x%02x",c);
     mferror(buff);
 }
 
-static int egetc(void) /* read a single character and abort on EOF */
-{
+static int
+egetc(void) {		/* read a single character and abort on EOF */
     int c = (*Mf_getc)();
 
     if ((c == EOF) || feof(stdin))
@@ -126,8 +109,8 @@ static int egetc(void) /* read a single character and abort on EOF */
 
 typedef int32_t varinum_t;
 
-static varinum_t readvarinum(void)
-{
+static varinum_t
+readvarinum(void) {
     varinum_t value;
     int c;
 
@@ -143,8 +126,8 @@ static varinum_t readvarinum(void)
     return(value);
 }
 
-static int32_t to32bit(int c1, int c2, int c3, int c4)
-{
+static int32_t
+to32bit(int c1, int c2, int c3, int c4) {
     long value = 0L;
 
     value = (c1 & 0xff);
@@ -154,13 +137,13 @@ static int32_t to32bit(int c1, int c2, int c3, int c4)
     return (value);
 }
 
-static int to16bit(int c1, int c2)
-{
+static int
+to16bit(int c1, int c2) {
     return ((c1 & 0xff ) << 8) + (c2 & 0xff);
 }
 
-static int32_t read32bit(void)
-{
+static int32_t
+read32bit(void) {
     int c1, c2, c3, c4;
 
     c1 = egetc();
@@ -170,8 +153,8 @@ static int32_t read32bit(void)
     return to32bit(c1, c2, c3, c4);
 }
 
-static int read16bit(void)
-{
+static int
+read16bit(void) {
     int c1, c2;
     c1 = egetc();
     c2 = egetc();
@@ -184,9 +167,8 @@ static int read16bit(void)
  * based on notes and tracks based on SMPTE times.
  *
  */
-MIDIFILE_PUBLIC float mf_ticks2sec(mf_ticks_t ticks, int division,
-        mf_tempo_t tempo)
-{
+MIDIFILE_PUBLIC float
+mf_ticks2sec(mf_ticks_t ticks, int division, mf_tempo_t tempo) {
     float smpte_format, smpte_resolution;
 
     if (division > 0)
@@ -200,10 +182,9 @@ MIDIFILE_PUBLIC float mf_ticks2sec(mf_ticks_t ticks, int division,
     }
 } /* end of ticks2sec() */
 
-MIDIFILE_PUBLIC unsigned long mf_sec2ticks(float secs, int division,
-        unsigned int tempo)
-{    
-     return (long)(((secs * 1000.0) / 4.0 * division) / tempo);
+MIDIFILE_PUBLIC mf_ticks_t
+mf_sec2ticks(float secs, int division, unsigned int tempo) {    
+    return (long)(((secs * 1000.0) / 4.0 * division) / tempo);
 }
 
 /* The code below allows collection of a system exclusive message of */
@@ -215,23 +196,23 @@ static char *Msgbuff = NULL;  /* message buffer */
 static int Msgsize = 0;       /* Size of currently allocated Msg */
 static int Msgindex = 0;      /* index of next available location in Msg */
 
-static void msginit(void)
-{
+static void
+msginit(void) {
     Msgindex = 0;
 }
 
-static char *msg(void)
-{
+static char *
+msg(void) {
     return(Msgbuff);
 }
 
-static int msgleng(void)
-{
+static int
+msgleng(void) {
     return(Msgindex);
 }
 
-static void biggermsg(void)
-{
+static void
+biggermsg(void) {
     char *newmess;
     char *oldmess = Msgbuff;
     int oldleng = Msgsize;
@@ -255,122 +236,121 @@ static void biggermsg(void)
     Msgbuff = newmess;
 }
 
-static void msgadd(int c)
-{
+static void
+msgadd(int c) {
     /* If necessary, allocate larger message buffer. */
     if (Msgindex >= Msgsize)
         biggermsg();
     Msgbuff[Msgindex++] = c;
 }
 
-static void metaevent(int type)
-{
+static void
+metaevent(int type) {
     int leng = msgleng();
     char *m = msg();
 
     switch (type) {
-        case 0x00:
-            if (Mf_seqnum)
+    case 0x00:
+	if (Mf_seqnum)
             (*Mf_seqnum)(to16bit(m[0],m[1]));
-            break;
-        case 0x01:      /* Text event */
-        case 0x02:      /* Copyright notice */
-        case 0x03:      /* Sequence/Track name */
-        case 0x04:      /* Instrument name */
-        case 0x05:      /* Lyric */
-        case 0x06:      /* Marker */
-        case 0x07:      /* Cue point */
-        case 0x08:
-        case 0x09:
-        case 0x0a:
-        case 0x0b:
-        case 0x0c:
-        case 0x0d:
-        case 0x0e:
-        case 0x0f:
-            /* These are all text events */
-            if (Mf_text)
-                (*Mf_text)(type,leng,m);
-            break;
-        case 0x2f:      /* End of Track */
-            if (Mf_eot)
-                (*Mf_eot)();
-            break;
-        case 0x51:      /* Set tempo */
-            if (Mf_tempo)
-                (*Mf_tempo)(to32bit(0,m[0],m[1],m[2]));
-            break;
-        case 0x54:
-            if (Mf_smpte)
-                (*Mf_smpte)(m[0],m[1],m[2],m[3],m[4]);
-            break;
-        case 0x58:
-            if (Mf_timesig)
-                (*Mf_timesig)(m[0],m[1],m[2],m[3]);
-            break;
-        case 0x59:
-            if (Mf_keysig)
-                (*Mf_keysig)(m[0],m[1]);
-            break;
-        case 0x7f:
-            if (Mf_sqspecific)
-                (*Mf_sqspecific)(leng,m);
-            break;
-        default:
-            if (Mf_metamisc)
-                (*Mf_metamisc)(type,leng,m);
+	break;
+    case 0x01:      /* Text event */
+    case 0x02:      /* Copyright notice */
+    case 0x03:      /* Sequence/Track name */
+    case 0x04:      /* Instrument name */
+    case 0x05:      /* Lyric */
+    case 0x06:      /* Marker */
+    case 0x07:      /* Cue point */
+    case 0x08:
+    case 0x09:
+    case 0x0a:
+    case 0x0b:
+    case 0x0c:
+    case 0x0d:
+    case 0x0e:
+    case 0x0f:
+	/* These are all text events */
+	if (Mf_text)
+	    (*Mf_text)(type,leng,m);
+	break;
+    case 0x2f:      /* End of Track */
+	if (Mf_eot)
+	    (*Mf_eot)();
+	break;
+    case 0x51:      /* Set tempo */
+	if (Mf_tempo)
+	    (*Mf_tempo)(to32bit(0,m[0],m[1],m[2]));
+	break;
+    case 0x54:
+	if (Mf_smpte)
+	    (*Mf_smpte)(m[0],m[1],m[2],m[3],m[4]);
+	break;
+    case 0x58:
+	if (Mf_timesig)
+	    (*Mf_timesig)(m[0],m[1],m[2],m[3]);
+	break;
+    case 0x59:
+	if (Mf_keysig)
+	    (*Mf_keysig)(m[0],m[1]);
+	break;
+    case 0x7f:
+	if (Mf_sqspecific)
+	    (*Mf_sqspecific)(leng,m);
+	break;
+    default:
+	if (Mf_metamisc)
+	    (*Mf_metamisc)(type,leng,m);
     }
 }
 
-static void sysex(void)
-{
+static void sysex(void) {
     if (Mf_sysex)
         (*Mf_sysex)(msgleng(),msg());
 }
 
-static void chanmessage(int status, int c1, int c2)
-{
+static void
+chanmessage(int status, int c1, int c2) {
     int chan = status & 0xf;
 
-    switch ( status & 0xf0 ) {
-        case 0x80:
-            if (Mf_off)
-                (*Mf_off)(chan, c1, c2);
-            break;
-        case 0x90:
-            if (Mf_on)
-                (*Mf_on)(chan, c1, c2);
-            break;
-        case 0xa0:
-            if (Mf_pressure)
-                (*Mf_pressure)(chan, c1, c2);
-            break;
-        case 0xb0:
-            if (Mf_parameter)
-                (*Mf_parameter)(chan, c1, c2);
-            break;
-        case 0xe0:
-            if (Mf_pitchbend)
-                (*Mf_pitchbend)(chan, c1, c2);
-            break;
-        case 0xc0:
-            if (Mf_program)
-                (*Mf_program)(chan, c1);
-            break;
-        case 0xd0:
-            if (Mf_chanpressure)
-                (*Mf_chanpressure)(chan, c1);
-            break;
+    switch (status & 0xf0) {
+    case 0x80:
+	if (Mf_off)
+	    (*Mf_off)(chan, c1, c2);
+	break;
+    case 0x90:
+	if (Mf_on)
+	    (*Mf_on)(chan, c1, c2);
+	break;
+    case 0xa0:
+	if (Mf_pressure)
+	    (*Mf_pressure)(chan, c1, c2);
+	break;
+    case 0xb0:
+	if (Mf_parameter)
+	    (*Mf_parameter)(chan, c1, c2);
+	break;
+    case 0xe0:
+	if (Mf_pitchbend)
+	    (*Mf_pitchbend)(chan, c1, c2);
+	break;
+    case 0xc0:
+	if (Mf_program)
+	    (*Mf_program)(chan, c1);
+	break;
+    case 0xd0:
+	if (Mf_chanpressure)
+	    (*Mf_chanpressure)(chan, c1);
+	break;
     }
 }
 
-static int readmt(char *s) /* read through the “MThd” or “MTrk” header string */
-{
+static int
+readmt(char *s) { /* read through the “MThd” or “MTrk” header string */
     int n = 0;
     char *p = s;
     int c;
 
-    while (n++<4 && (c=(*Mf_getc)()) != EOF) {
+    while (n++ < 4 && (c = (*Mf_getc)()) != EOF) {
         if (c != *p++) {
             char buff[32];
             (void) strcpy(buff,"expecting ");
@@ -381,8 +361,8 @@ static int readmt(char *s) /* read through the “MThd” or “MTrk” header s
     return(c);
 }
 
-static void readheader(void) /* read a header chunk */
-{
+static void
+readheader(void) {			/* read a header chunk */
     int format, ntrks, division;
 
     if (readmt("MThd") == EOF)
@@ -401,8 +381,8 @@ static void readheader(void) /* read a header chunk */
         (void) egetc();
 }
 
-static int readtrack(void) /* read a track chunk */
-{
+static int
+readtrack(void) {			/* read a track chunk */
     /* This array is indexed by the high half of a status byte.  It’s */
     /* value is either the number of bytes needed (1 or 2) for a channel */
     /* message, or 0 (meaning it’s not  a channel message). */
@@ -455,66 +435,66 @@ static int readtrack(void) /* read a track chunk */
         }
 
         switch (c) {
-            case 0xff:     /* meta event */
-                type = egetc();
-                /*
-                 * This doesn’t work with GCC
-                 * lookfor = Mf_toberead - readvarinum();
-                 */
-                varinum = readvarinum();
-                lookfor = Mf_toberead - varinum;
-                msginit();
+	case 0xff:     /* meta event */
+	    type = egetc();
+	    /*
+	     * This doesn’t work with GCC
+	     * lookfor = Mf_toberead - readvarinum();
+	     */
+	    varinum = readvarinum();
+	    lookfor = Mf_toberead - varinum;
+	    msginit();
 
-                while (Mf_toberead > lookfor)
-                    msgadd(egetc());
+	    while (Mf_toberead > lookfor)
+		msgadd(egetc());
 
-                metaevent(type);
-                break;
+	    metaevent(type);
+	    break;
 
-            case 0xf0:     /* start of system exclusive */
-                /*
-                 * This doesn’t work with GCC
-                 * lookfor = Mf_toberead - readvarinum();
-                 */
-                varinum = readvarinum();
-                lookfor = Mf_toberead - varinum;
-                msginit();
-                msgadd(0xf0);
+	case 0xf0:     /* start of system exclusive */
+	    /*
+	     * This doesn’t work with GCC
+	     * lookfor = Mf_toberead - readvarinum();
+	     */
+	    varinum = readvarinum();
+	    lookfor = Mf_toberead - varinum;
+	    msginit();
+	    msgadd(0xf0);
 
-                while (Mf_toberead > lookfor)
-                    msgadd(c = egetc());
+	    while (Mf_toberead > lookfor)
+		msgadd(c = egetc());
 
-                if (c == 0xf7 || Mf_nomerge == 0)
-                    sysex();
-                else
-                    sysexcontinue = 1;  /* merge into next msg */
-                break;
+	    if (c == 0xf7 || Mf_nomerge == 0)
+		sysex();
+	    else
+		sysexcontinue = 1;  /* merge into next msg */
+	    break;
 
-            case 0xf7:     /* sysex continuation or arbitrary stuff */
-                /*
-                 * This doesn’t work with GCC
-                 * lookfor = Mf_toberead - readvarinum();
-                 */
-                varinum = readvarinum();
-                lookfor = Mf_toberead - varinum;
+	case 0xf7:     /* sysex continuation or arbitrary stuff */
+	    /*
+	     * This doesn’t work with GCC
+	     * lookfor = Mf_toberead - readvarinum();
+	     */
+	    varinum = readvarinum();
+	    lookfor = Mf_toberead - varinum;
 
-                if (! sysexcontinue)
-                    msginit();
+	    if (! sysexcontinue)
+		msginit();
 
-                while (Mf_toberead > lookfor)
-                    msgadd(c=egetc());
+	    while (Mf_toberead > lookfor)
+		msgadd(c=egetc());
 
-                if ( ! sysexcontinue ) {
-                    if (Mf_arbitrary)
-                        (*Mf_arbitrary)(msgleng(),msg());
-                } else if (c == 0xf7) {
-                    sysex();
-                    sysexcontinue = 0;
-                }
-                break;
-            default:
-                badbyte(c);
-                break;
+	    if ( ! sysexcontinue ) {
+		if (Mf_arbitrary)
+		    (*Mf_arbitrary)(msgleng(),msg());
+	    } else if (c == 0xf7) {
+		sysex();
+		sysexcontinue = 0;
+	    }
+	    break;
+	default:
+	    badbyte(c);
+	    break;
         }
     }
 
@@ -523,24 +503,25 @@ static int readtrack(void) /* read a track chunk */
     return(1);
 }
 
-MIDIFILE_PUBLIC void mfread(void)
-{
+MIDIFILE_PUBLIC void
+mfread(void) {
     if ( Mf_getc == NULLFUNC )
         mferror("mfread() called without setting Mf_getc"); 
 
     readheader();
-    while (readtrack());
+    while (readtrack())
+	;
 }
 
 /* for backward compatibility with the original lib */
-MIDIFILE_PUBLIC void midifile(void)
-{
+MIDIFILE_PUBLIC void
+midifile(void) {
     mfread();
 }
 
 /* write a single character and abort on error */
-static int eputc(unsigned char c)
-{
+static int
+_eputc(unsigned char c) {
     int return_val;
 
     if ((Mf_putc) == NULLFUNC) {
@@ -548,6 +529,8 @@ static int eputc(unsigned char c)
         return(-1);
     }
 
+    if (Mf_trace_output)
+	fprintf(stderr, " %02X", c);
     return_val = (*Mf_putc)(c);
 
     if (return_val == EOF)
@@ -557,6 +540,18 @@ static int eputc(unsigned char c)
     return(return_val);
 }
 
+static int
+__eputc(const char *what, unsigned char c) {
+    int ret;
+    if (Mf_trace_output)
+	fprintf(stderr, " %s =>", what);
+    ret = _eputc(c);
+    TRACE_EOL;
+    return(ret);
+} /* __eputc */
+
+#define eputc(X) __eputc(#X, X)
+
 /*
  * write32bit()
  * write16bit()
@@ -564,29 +559,34 @@ static int eputc(unsigned char c)
  * These routines are used to make sure that the byte order of
  * the various data types remains constant between machines. This
  * helps make sure that the code will be portable from one system
- * to the next.  It is slightly dangerous that it assumes that longs
- * have at least 32 bits and ints have at least 16 bits, but this
- * has been true at least on PCs, UNIX machines, and Macintosh’s.
- *
+ * to the next.
  */
-static void write32bit(int32_t data)
-{
-    eputc((unsigned)((data >> 24) & 0xff));
-    eputc((unsigned)((data >> 16) & 0xff));
-    eputc((unsigned)((data >> 8 ) & 0xff));
-    eputc((unsigned)(data & 0xff));
+static void
+_write32bit(const char *what, int32_t data) {
+    if (Mf_trace_output)
+	fprintf(stderr, " %s =>", what);
+    _eputc((unsigned)((data >> 24) & 0xff));
+    _eputc((unsigned)((data >> 16) & 0xff));
+    _eputc((unsigned)((data >> 8 ) & 0xff));
+    _eputc((unsigned)(data & 0xff));
+    TRACE_EOL;
 }
 
-static void write16bit(int data)
-{
-    eputc((unsigned)((data & 0xff00) >> 8));
-    eputc((unsigned)(data & 0xff));
+static void
+_write16bit(const char *what, int data) {
+    if (Mf_trace_output)
+	fprintf(stderr, " %s =>", what);
+    _eputc((unsigned)((data & 0xff00) >> 8));
+    _eputc((unsigned)(data & 0xff));
+    TRACE_EOL;
 }
 
-static void WriteVarLen(varinum_t value)
-{
+static void
+_WriteVarLen(const char *what, varinum_t value) {
     varinum_t buffer;
 
+    if (Mf_trace_output)
+	fprintf(stderr, " %s =>", what);
     buffer = value & 0x7f;
     while ((value >>= 7) > 0) {
         buffer <<= 8;
@@ -594,25 +594,30 @@ static void WriteVarLen(varinum_t value)
         buffer += (value & 0x7f);
     }
     while (1) {
-        eputc((unsigned)(buffer & 0xff));
+        _eputc((unsigned)(buffer & 0xff));
        
         if (buffer & 0x80)
             buffer >>= 8;
         else
-            return;
+            break;
     }
-}/* end of WriteVarLen */
+    TRACE_EOL;
+} /* end of WriteVarLen */
 
-static void mf_w_header_chunk(int format, int ntracks, int division)
-{
-    unsigned long ident,length;
-    void write16bit(),write32bit();
+#define write32bit(X) _write32bit(#X, X)
+#define write16bit(X) _write16bit(#X, X)
+#define WriteVarLen(X) _WriteVarLen(#X, X)
+
+static void
+mf_w_header_chunk(int format, int ntracks, int division) {
+    uint32_t ident,length;
     
-    ident = MThd;           /* Head chunk identifier                    */
-    length = 6;             /* Chunk length                             */
+    ident = MThd;           /* Head chunk identifier */
+    length = 6;             /* Chunk length */
 
     /* individual bytes of the header must be written separately
        to preserve byte order across cpu types :-( */
+    TRACE_FUNC;
     write32bit(ident);
     write32bit(length);
     write16bit(format);
@@ -623,6 +628,15 @@ static void mf_w_header_chunk(int format, int ntracks, int division)
 MIDIFILE_PUBLIC int Mf_RunStat = 0;    /* if nonzero, use running status */
 static int laststat;                   /* last status code */
 static int lastmeta;                   /* last meta event type */
+
+static void
+mf_write_data(mf_data_t *data, mf_size_t size) {
+    if (Mf_trace_output)
+	fprintf(stderr, " data =>");
+    while (size-- > 0)
+        _eputc(*data++);
+    TRACE_EOL;
+}
 
 /*
  * mf_w_midi_event()
@@ -642,32 +656,32 @@ static int lastmeta;                   /* last meta event type */
  *        data.
  * size – The length of the midi‐event data.
  */
-MIDIFILE_PUBLIC int mf_w_midi_event(mf_deltat_t delta_time,
+MIDIFILE_PUBLIC int
+mf_w_midi_event(mf_deltat_t delta_time,
         unsigned int type, unsigned int chan, mf_data_t *data,
-        mf_size_t size)
-{
-    mf_size_t i;
+        mf_size_t size) {
     unsigned char c;
+    int ret = size;
 
+    TRACE_FUNC;
     WriteVarLen(delta_time);
 
     /* all MIDI events start with the type in the first four bits,
        and the channel in the lower four bits */
     c = type | chan;
 
-    if (chan > 15)
-        perror("error: MIDI channel greater than 16\n");
-
+    if (chan > 15) {
+        fprintf(stderr, "error: MIDI channel greater than 16\n");
+	ret = -1;
+    }
     if (!Mf_RunStat || laststat != c)
-        eputc(c);
+        __eputc("status", c);
 
     laststat = c;
 
     /* write out the data bytes */
-    for (i = 0; i < size; i++)
-        eputc(data[i]);
-
-    return(size);
+    mf_write_data(data, size);
+    return(ret);
 } /* end mf_write MIDI event */
 
 /*
@@ -684,11 +698,12 @@ MIDIFILE_PUBLIC int mf_w_midi_event(mf_deltat_t delta_time,
  *        data.
  * size – The length of the meta‐event data.
  */
-MIDIFILE_PUBLIC int mf_w_meta_event(mf_deltat_t delta_time,
-        unsigned int type, mf_data_t *data, mf_size_t size)
-{
-    mf_size_t i;
+MIDIFILE_PUBLIC int
+mf_w_meta_event(mf_deltat_t delta_time, unsigned int type,
+		mf_data_t *data, mf_size_t size) {
+    int ret = size;
 
+    TRACE_FUNC;
     WriteVarLen(delta_time);
     
     /* This marks the fact we’re writing a meta‐event */
@@ -702,11 +717,8 @@ MIDIFILE_PUBLIC int mf_w_meta_event(mf_deltat_t delta_time,
     /* The length of the data bytes to follow */
     WriteVarLen(size); 
 
-    for (i = 0; i < size; i++) {
-        if (eputc(data[i]) != data[i])
-            return(-1); 
-    }
-    return(size);
+    mf_write_data(data, size);
+    return(ret);
 } /* end mf_w_meta_event */
 
 /*
@@ -722,30 +734,27 @@ MIDIFILE_PUBLIC int mf_w_meta_event(mf_deltat_t delta_time,
  *        The first byte is the type (0xf0 for sysex, 0xf7 otherwise)
  * size – The length of the sysex‐event data.
  */
-MIDIFILE_PUBLIC int mf_w_sysex_event(mf_deltat_t delta_time,
-        mf_data_t *data, mf_size_t size)
-{
-    mf_size_t i;
+MIDIFILE_PUBLIC int
+mf_w_sysex_event(mf_deltat_t delta_time,
+        mf_data_t *data, mf_size_t size) {
+    int ret = size;
 
+    TRACE_FUNC;
     WriteVarLen(delta_time);
     
     /* The type of sysex event */
-    eputc(*data);
+    __eputc("event", *data);
     laststat = 0;
 
     /* The length of the data bytes to follow */
     WriteVarLen(size-1); 
+    mf_write_data(data, size);
 
-    for (i = 1; i < size; i++) {
-        if (eputc(data[i]) != data[i])
-            return(-1); 
-    }
-    return(size);
+    return(ret);
 } /* end mf_w_sysex_event */
 
-MIDIFILE_PUBLIC void mf_w_tempo(mf_deltat_t delta_time,
-				mf_tempo_t tempo)
-{
+MIDIFILE_PUBLIC void
+mf_w_tempo(mf_deltat_t delta_time, mf_tempo_t tempo) {
     /* Write tempo */
     /* all tempos are written as 120 beats/minute, */
     /* expressed in microseconds/quarter note     */
@@ -757,16 +766,18 @@ MIDIFILE_PUBLIC void mf_w_tempo(mf_deltat_t delta_time,
     eputc(set_tempo);
 
     eputc(3);
-    eputc((unsigned)(0xff & (tempo >> 16)));
-    eputc((unsigned)(0xff & (tempo >> 8)));
-    eputc((unsigned)(0xff & tempo));
+    if (Mf_trace_output)
+	fprintf(stderr, " tempo =>");
+    _eputc((unsigned)(0xff & (tempo >> 16)));
+    _eputc((unsigned)(0xff & (tempo >> 8)));
+    _eputc((unsigned)(0xff & tempo));
+    TRACE_EOL;
 }
 
-static void mf_w_track_chunk(int which_track, FILE *fp, void (*wtrack)())
-{
-    unsigned long trkhdr,trklength;
+static void
+mf_w_track_chunk(int tempo_track, FILE *fp) {
+    uint32_t trkhdr,trklength;
     long offset, place_marker;
-    void write16bit(),write32bit();
 
     trkhdr = MTrk;
     trklength = 0;
@@ -786,10 +797,11 @@ static void mf_w_track_chunk(int which_track, FILE *fp, void (*wtrack)())
     Mf_numbyteswritten = 0L; /* the header’s length doesn’t count */
     laststat = 0;
 
-    /* Note: this calls Mf_writetempotrack with an unused parameter (-1)
-       But this is innocent */
-
-    (*wtrack)(which_track);
+    /* "wtempotrack -1 is harmless" */
+    if (tempo_track)
+        (*Mf_wtempotrack)(-1);
+    else
+        (*Mf_wtrack)();
 
     if (laststat != meta_event || lastmeta != end_of_track) {
         /* mf_write End of track meta event */
@@ -856,9 +868,8 @@ static void mf_w_track_chunk(int which_track, FILE *fp, void (*wtrack)())
  *             to work with Mf_putc.  
  */ 
 
-MIDIFILE_PUBLIC void mfwrite(int format, int ntracks, int division,
-        FILE *fp)
-{
+MIDIFILE_PUBLIC void
+mfwrite(int format, int ntracks, int division, FILE *fp) {
     int i;
 
     if (Mf_putc == NULLFUNC)
@@ -872,11 +883,11 @@ MIDIFILE_PUBLIC void mfwrite(int format, int ntracks, int division,
 
     /* In format 1 files, the first track is a tempo map */
     if (format == 1 && ( Mf_wtempotrack )) {
-        mf_w_track_chunk(-1, fp, Mf_wtempotrack);
+        mf_w_track_chunk(1, fp);
         ntracks--;
     }
 
     /* The rest of the file is a series of tracks */
     for (i = 0; i < ntracks; i++)
-        mf_w_track_chunk(i, fp, Mf_wtrack);
+        mf_w_track_chunk(0, fp);
 }

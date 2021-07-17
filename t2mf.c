@@ -8,15 +8,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef __linux__
-#include <unistd.h>
-#elif _WIN32
+#ifdef _WIN32
 #include <io.h>
 #include "getopt.h"
+#else
+#include <unistd.h>		    /* requires _POSIX_C_SOURCE >=2 */
 #endif
 #include <errno.h>
 #include <ctype.h>
 #include <setjmp.h>
+
 #include "t2mf.h"
 #include "version.h"
 
@@ -43,28 +44,20 @@ extern int do_hex;
 extern int eol_seen;
 extern FILE  *yyin;
 
-static void mywritetrack(void);
-static void checkchan(void);
-static void checknote(void);
-static void checkval(void);
-static void splitval(void);
-static void get16val(void);
-static void checkcon(void);
-static void checkprog(void);
 static void checkeol(void);
-static void gethex(void);
 
-int yywrap(void) {
+int
+yywrap(void) {
     return 1;
 }
 
-static void error(char *s)
-{
+static void
+error(char *s) {
     fprintf(stderr, "Error: %s\n", s);
 }
 
-static void prs_error(char *s)
-{
+static void
+prs_error(char *s) {			/* parse error */
     int c;
     int count;
     int ln = (eol_seen? lineno-1 : lineno);
@@ -137,7 +130,8 @@ static void translate(void)
 char data[5];
 int chan;
 
-static void checkchan(void)
+static void
+checkchan(void)
 {
     if (yylex() != CH || yylex() != INT) syntax();
     if (yyval < 1 || yyval > 16)
@@ -145,8 +139,8 @@ static void checkchan(void)
     chan = yyval-1;
 }
 
-static void checknote(void)
-{
+static void
+checknote(void) {
     int c;
     if (yylex() != NOTE || ((c=yylex()) != INT && c != NOTEVAL))
         syntax();
@@ -184,16 +178,16 @@ static void checknote(void)
     data[0] = yyval;
 }
 
-static void checkval(void)
-{
+static void
+checkval(void) {
     if (yylex() != VAL || yylex() != INT) syntax();
     if (yyval < 0 || yyval > 127)
         error("Value must be between 0 and 127");
     data[1] = yyval;
 }
 
-static void splitval(void)
-{
+static void
+splitval(void) {
     if (yylex() != VAL || yylex() != INT) syntax();
     if (yyval < 0 || yyval > 16383)
         error("Value must be between 0 and 16383");
@@ -201,8 +195,8 @@ static void splitval(void)
     data[1] = yyval/128;
 }
 
-static void get16val(void)
-{
+static void
+get16val(void) {
     if (yylex() != VAL || yylex() != INT) syntax();
     if (yyval < 0 || yyval > 65535)
         error("Value must be between 0 and 65535");
@@ -210,8 +204,8 @@ static void get16val(void)
     data[1] = yyval&0xff;
 }
 
-static void checkcon(void)
-{
+static void
+checkcon(void) {
     if (yylex() != CON || yylex() != INT)
         syntax();
     if (yyval < 0 || yyval > 127)
@@ -219,16 +213,16 @@ static void checkcon(void)
     data[0] = yyval;
 }
 
-static void checkprog(void)
-{
+static void
+checkprog(void) {
     if (yylex() != PROG || yylex() != INT) syntax();
     if (yyval < 0 || yyval > 127)
         error("Program number must be between 0 and 127");
     data[0] = yyval;
 }
 
-static void checkeol(void)
-{
+static void
+checkeol(void) {
     if (eol_seen) return;
     if (yylex() != EOL) {
     	prs_error("Garbage deleted");
@@ -236,9 +230,10 @@ static void checkeol(void)
     }
 }
 
-static void gethex(void)
-{
+static void
+gethex(void) {
     int c;
+    unsigned int u;
     buflen = 0;
     do_hex = 1;
     c = yylex();
@@ -271,8 +266,9 @@ rescan:
                         c = '\t';
                         break;
                     case 'x':
-                        if (sscanf(yytext+i, "%2x", &c) != 1)
+                        if (sscanf(yytext+i, "%2x", &u) != 1)
                             prs_error("Illegal \\x in string");
+			c = u;
                         i += 2;
                         break;
                     case '\r':
@@ -323,8 +319,8 @@ bankno_t bankno(char *s, int n)
     return res;
 }
 
-static void mywritetrack()
-{
+static void
+mywritetrack(void) {
     int opcode, c;
     volatile mf_deltat_t currtime = 0;
     mf_deltat_t newtime, delta;
@@ -520,8 +516,9 @@ static void usage(void)
 {
     fprintf(stderr,
 "t2mf v%s\n"
-"Usage: t2mf [-r] [textfile [midifile]]\n\n"
+"Usage: t2mf [Options] [textfile [midifile]]\n\n"
 "Options:\n"
+"  -d      debug output\n"
 "  -r      use running status\n", VERSION);
     exit(1);
 }
@@ -535,6 +532,9 @@ int main(int argc, char **argv)
             case 'r':
                 Mf_RunStat = 1;
                 break;
+	    case 'd':
+		Mf_trace_output = 1;
+		break;
             case 'h':
             case '?':
             default:

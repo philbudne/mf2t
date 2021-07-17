@@ -8,13 +8,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifndef _WIN32
+#if _POSIX_C_SOURCE >= 2
 #include <unistd.h>
 #else
 #include <io.h>
 #include "getopt.h"
 #endif
 #include <errno.h>
+
 #include "midifile.h"
 #include "version.h"
 
@@ -37,16 +38,16 @@ static char *Pbmsg  = "Pb ch=%d v=%d\n";
 static char *PrChmsg = "PrCh ch=%d p=%d\n";
 static char *ChPrmsg = "ChPr ch=%d v=%d\n";
 
-static void error(char *s)
-{
+static void
+error(char *s) {
     if (TrksToDo <= 0)
         fprintf(stderr, "Error: Garbage at end\n");
     else
         fprintf(stderr, "Error: %s\n", s);
 }
 
-static void prtime(void)
-{
+static void
+prtime(void) {
     if (times) {
         mf_deltat_t m = (Mf_currtime-T0)/Beat;
         printf("%d:%d:%d ",
@@ -55,8 +56,8 @@ static void prtime(void)
         printf("%d ",Mf_currtime);
 }
 
-static void prtext(unsigned char *p, int leng)
-{
+static void
+prtext(unsigned char *p, int leng) {
     int n, c;
     int pos = 25;
 
@@ -102,8 +103,8 @@ static void prtext(unsigned char *p, int leng)
     printf("\"\n");
 }
 
-static void prhex(unsigned char *p,  int leng)
-{
+static void
+prhex(unsigned char *p,  int leng) {
     int n;
     int pos = 25;
 
@@ -119,8 +120,8 @@ static void prhex(unsigned char *p,  int leng)
     printf("\n");
 }
 
-static char *mknote(int pitch)
-{
+static char *
+mknote(int pitch) {
     static char *Notes[] =
         { "c", "c#", "d", "d#", "e", "f", "f#", "g",
           "g#", "a", "a#", "b" };
@@ -132,8 +133,8 @@ static char *mknote(int pitch)
     return buf;
 }
 
-static void myheader(int format, int ntrks, int division)
-{
+static void
+myheader(int format, int ntrks, int division) {
     if (division & 0x8000) { /* SMPTE */
         times = 0; /* Can’t do beats */
         printf("MFile %d %d %d %d\n",format,ntrks,
@@ -148,83 +149,83 @@ static void myheader(int format, int ntrks, int division)
     TrksToDo = ntrks;
 }
 
-static void mytrstart(void)
-{
+static void
+mytrstart(void) {
     printf("MTrk\n");
     TrkNr ++;
 }
 
-static void mytrend(void)
-{
+static void
+mytrend(void) {
     printf("TrkEnd\n");
     --TrksToDo;
 }
 
-static void mynon(int chan, int pitch, int vol)
-{
+static void
+mynon(int chan, int pitch, int vol) {	/* note on */
     prtime();
     printf(Onmsg, chan+1, mknote(pitch), vol);
 }
 
-static void mynoff(int chan, int pitch, int vol)
-{
+static void
+mynoff(int chan, int pitch, int vol) {	/* note off */
     prtime();
     printf(Offmsg, chan+1, mknote(pitch), vol);
 }
 
-static void mypressure(int chan, int pitch, int press)
-{
+static void
+mypressure(int chan, int pitch, int press) {
     prtime();
     printf(PoPrmsg, chan+1, mknote(pitch), press);
 }
 
-static void myparameter(int chan, int control, int value)
-{
+static void
+myparameter(int chan, int control, int value) {
     prtime();
     printf(Parmsg, chan+1, control, value);
 }
 
-static void mypitchbend(int chan, int lsb, int msb)
-{
+static void
+mypitchbend(int chan, int lsb, int msb) {
     prtime();
     printf(Pbmsg, chan+1, 128*msb+lsb);
 }
 
-static void myprogram(int chan, int program)
-{
+static void
+myprogram(int chan, int program) {
     prtime();
     printf(PrChmsg, chan+1, program);
 }
 
-static void mychanpressure(int chan, int press)
-{
+static void
+mychanpressure(int chan, int press) {
     prtime();
     printf(ChPrmsg, chan+1, press);
 }
 
-static void mysysex(int leng, char *mess)
-{
+static void
+mysysex(int leng, char *mess) {
     prtime();
     printf("SysEx");
     prhex((unsigned char *)mess, leng);
 }
 
-static void mymmisc(int type, int leng, char *mess)
-{
+static void
+mymmisc(int type, int leng, char *mess) {
     prtime();
     printf("Meta 0x%02x",type);
     prhex((unsigned char *)mess, leng);
 }
 
-static void mymspecial(int leng, char *mess)
-{
+static void
+mymspecial(int leng, char *mess) {
     prtime();
     printf("SeqSpec");
     prhex((unsigned char *)mess, leng);
 }
 
-static void mymtext(int type, int leng, char *mess)
-{
+static void
+mymtext(int type, int leng, char *mess) {
     static char *ttype[] = {
         NULL,
         "Text",         /* type=0x01 */
@@ -248,32 +249,32 @@ static void mymtext(int type, int leng, char *mess)
     prtext((unsigned char *)mess, leng);
 }
 
-static void mymseq(int num)
-{
+static void
+mymseq(int num) {
     prtime();
     printf("SeqNr %d\n",num);
 }
 
-static void mymeot(void)
-{
+static void
+mymeot(void) {
     prtime();
     printf("Meta TrkEnd\n");
 }
 
-static void mykeysig(int sf, int mi)
-{
+static void
+mykeysig(int sf, int mi) {
     prtime();
     printf("KeySig %d %s\n", (sf>127?sf-256:sf), (mi?"minor":"major"));
 }
 
-static void mytempo(mf_tempo_t tempo)
-{
+static void
+mytempo(mf_tempo_t tempo) {
     prtime();
     printf("Tempo %d\n",tempo);
 }
 
-static void mytimesig(int nn, int dd, int cc, int bb)
-{
+static void
+mytimesig(int nn, int dd, int cc, int bb) {
     int denom = 1;
     while (dd-- > 0)
         denom *= 2;
@@ -285,21 +286,21 @@ static void mytimesig(int nn, int dd, int cc, int bb)
     Beat = 4 * Clicks / denom;
 }
 
-static void mysmpte(int hr, int mn, int se, int fr, int ff)
-{
+static void
+mysmpte(int hr, int mn, int se, int fr, int ff) {
     prtime();
     printf("SMPTE %d %d %d %d %d\n", hr, mn, se, fr, ff);
 }
 
-static void myarbitrary(int leng, char *mess)
-{
+static void
+myarbitrary(int leng, char *mess) {
     prtime();
     printf("Arb");
     prhex ((unsigned char *)mess, leng);
 }
 
-static void initfuncs(void)
-{
+static void
+initfuncs(void) {
     Mf_error = error;
     Mf_getc = getchar;
     Mf_header =  myheader;
@@ -325,8 +326,8 @@ static void initfuncs(void)
     Mf_arbitrary =  myarbitrary;
 }
 
-static void usage(void)
-{
+static void
+usage(void) {
     fprintf(stderr,
 "mf2t v%s\n"
 "Usage: mf2t [-mnbtv] [-f n] [midifile [textfile]]\n\n"
@@ -339,51 +340,49 @@ static void usage(void)
     exit(1);
 }
 
-int main(int argc, char **argv)
-{
+int
+main(int argc, char **argv) {
     int c;
 
     Mf_nomerge = 1;
     while ((c = getopt(argc, argv, "mnbtvf:h")) != -1) {
         switch (c) {
-            case 'm':
-                Mf_nomerge = 0;
-                break;
-            case 'n':
-                notes++;
-                break;
-            case 'b':
-            case 't':
-                times++;
-                break;
-            case 'v':
-                Onmsg  = "On ch=%d note=%s vol=%d\n";
-                Offmsg = "Off ch=%d note=%s vol=%d\n";
-                PoPrmsg = "PolyPr ch=%d note=%s val=%d\n";
-                Parmsg = "Param ch=%d con=%d val=%d\n";
-                Pbmsg  = "Pb ch=%d val=%d\n";
-                PrChmsg = "ProgCh ch=%d prog=%d\n";
-                ChPrmsg = "ChanPr ch=%d val=%d\n";
-                break;
-            case 'f':
-                fold = atoi(optarg);
-                break;
-            case 'h':
-            case '?':
-            default:
-                usage();
+	case 'm':
+	    Mf_nomerge = 0;
+	    break;
+	case 'n':
+	    notes++;
+	    break;
+	case 'b':
+	case 't':
+	    times++;
+	    break;
+	case 'v':
+	    Onmsg  = "On ch=%d note=%s vol=%d\n";
+	    Offmsg = "Off ch=%d note=%s vol=%d\n";
+	    PoPrmsg = "PolyPr ch=%d note=%s val=%d\n";
+	    Parmsg = "Param ch=%d con=%d val=%d\n";
+	    Pbmsg  = "Pb ch=%d val=%d\n";
+	    PrChmsg = "ProgCh ch=%d prog=%d\n";
+	    ChPrmsg = "ChanPr ch=%d val=%d\n";
+	    break;
+	case 'f':
+	    fold = atoi(optarg);
+	    break;
+	case 'h':
+	case '?':
+	default:
+	    usage();
         }
     }
 
     if (optind < argc && !freopen(argv[optind++], "rb", stdin)) {
-        fprintf(stderr, "freopen (%s): %s\n", argv[optind - 1],
-                strerror(errno));
+	perror(argv[optind - 1]);
         exit(1);
     }
 
     if (optind < argc && !freopen(argv[optind], "w", stdout)) {
-        fprintf(stderr, "freopen (%s): %s\n", argv[optind],
-                strerror(errno));
+	perror(argv[optind]);
         exit(1);
     }
 

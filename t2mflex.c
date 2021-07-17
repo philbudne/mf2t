@@ -917,12 +917,11 @@ int yylength;
 int do_hex = 0;
 int eol_seen = 0;
 int lineno = 1;
-long yyval;
-long bankno();
+int32_t yyval;
 
-#line 924 "lex.yy.c"
+#line 923 "lex.yy.c"
 
-#line 926 "lex.yy.c"
+#line 925 "lex.yy.c"
 
 #define INITIAL 0
 #define QUOTE 1
@@ -1141,16 +1140,16 @@ YY_DECL
 		}
 
 	{
-#line 24 "t2mf.fl"
+#line 23 "t2mf.fl"
 
-#line 26 "t2mf.fl"
+#line 25 "t2mf.fl"
 	if (do_hex) {
 		BEGIN(HEX);
 		do_hex = 0;
 	}
 	eol_seen = 0;
 		
-#line 1154 "lex.yy.c"
+#line 1153 "lex.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -1213,286 +1212,286 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 32 "t2mf.fl"
+#line 31 "t2mf.fl"
 /* skip whitespace */;
 	YY_BREAK
 case 2:
 /* rule 2 can match eol */
 YY_RULE_SETUP
-#line 33 "t2mf.fl"
+#line 32 "t2mf.fl"
 /* skip comment */ lineno++;
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 35 "t2mf.fl"
+#line 34 "t2mf.fl"
 return MTHD;
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 36 "t2mf.fl"
+#line 35 "t2mf.fl"
 return MTRK;
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 37 "t2mf.fl"
+#line 36 "t2mf.fl"
 return TRKEND;
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 39 "t2mf.fl"
+#line 38 "t2mf.fl"
 return ON;
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 40 "t2mf.fl"
+#line 39 "t2mf.fl"
 return OFF;
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 41 "t2mf.fl"
+#line 40 "t2mf.fl"
 return POPR;
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 42 "t2mf.fl"
+#line 41 "t2mf.fl"
 return PAR;
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 43 "t2mf.fl"
+#line 42 "t2mf.fl"
 return PB;
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 44 "t2mf.fl"
+#line 43 "t2mf.fl"
 return PRCH;
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 45 "t2mf.fl"
+#line 44 "t2mf.fl"
 return CHPR;
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 46 "t2mf.fl"
+#line 45 "t2mf.fl"
 return SYSEX;
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 47 "t2mf.fl"
+#line 46 "t2mf.fl"
 return META;
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 48 "t2mf.fl"
+#line 47 "t2mf.fl"
 return SEQSPEC;
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 49 "t2mf.fl"
+#line 48 "t2mf.fl"
 return TEXT;
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 50 "t2mf.fl"
+#line 49 "t2mf.fl"
 return COPYRIGHT;
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 51 "t2mf.fl"
+#line 50 "t2mf.fl"
 return SEQNAME;
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 52 "t2mf.fl"
+#line 51 "t2mf.fl"
 return INSTRNAME;
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 53 "t2mf.fl"
+#line 52 "t2mf.fl"
 return LYRIC;
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 54 "t2mf.fl"
+#line 53 "t2mf.fl"
 return MARKER;
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 55 "t2mf.fl"
+#line 54 "t2mf.fl"
 return CUE;
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 56 "t2mf.fl"
+#line 55 "t2mf.fl"
 return SEQNR;
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 57 "t2mf.fl"
+#line 56 "t2mf.fl"
 return KEYSIG;
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 58 "t2mf.fl"
+#line 57 "t2mf.fl"
 return TEMPO;
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 59 "t2mf.fl"
+#line 58 "t2mf.fl"
 return TIMESIG;
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 60 "t2mf.fl"
+#line 59 "t2mf.fl"
 return SMPTE;
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 61 "t2mf.fl"
+#line 60 "t2mf.fl"
 return ARB;
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 62 "t2mf.fl"
+#line 61 "t2mf.fl"
 return '/';
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 64 "t2mf.fl"
+#line 63 "t2mf.fl"
 return MINOR;
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 65 "t2mf.fl"
+#line 64 "t2mf.fl"
 return MAJOR;
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 67 "t2mf.fl"
+#line 66 "t2mf.fl"
 return CH;
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 68 "t2mf.fl"
+#line 67 "t2mf.fl"
 return NOTE;
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 69 "t2mf.fl"
+#line 68 "t2mf.fl"
 return VAL;
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 70 "t2mf.fl"
+#line 69 "t2mf.fl"
 return CON;
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 71 "t2mf.fl"
+#line 70 "t2mf.fl"
 return PROG;
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 73 "t2mf.fl"
-sscanf (yytext, "%ld", &yyval); return INT;
+#line 72 "t2mf.fl"
+sscanf (yytext, "%d", &yyval); return INT;
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 74 "t2mf.fl"
-sscanf (yytext+2, "%lx", &yyval); return INT;
+#line 73 "t2mf.fl"
+sscanf (yytext+2, "%x", (uint32_t *)&yyval); return INT;
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 75 "t2mf.fl"
+#line 74 "t2mf.fl"
 yyval = bankno (yytext+1, yyleng-1); return INT;
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 76 "t2mf.fl"
-sscanf (yytext, "%lx", &yyval); return INT;
+#line 75 "t2mf.fl"
+sscanf (yytext, "%x", (uint32_t *)&yyval); return INT;
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 78 "t2mf.fl"
+#line 77 "t2mf.fl"
 return NOTEVAL;
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 80 "t2mf.fl"
+#line 79 "t2mf.fl"
 BEGIN (QUOTE);
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 81 "t2mf.fl"
+#line 80 "t2mf.fl"
 yymore();
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 82 "t2mf.fl"
+#line 81 "t2mf.fl"
 BEGIN (0); return STRING;
 	YY_BREAK
 case 45:
 /* rule 45 can match eol */
 YY_RULE_SETUP
-#line 83 "t2mf.fl"
+#line 82 "t2mf.fl"
 yymore();
 	YY_BREAK
 case 46:
 /* rule 46 can match eol */
 YY_RULE_SETUP
-#line 84 "t2mf.fl"
+#line 83 "t2mf.fl"
 { error ("unterminated string");
 			  lineno++; eol_seen++; BEGIN(0); return EOL;
 			}
 	YY_BREAK
 case YY_STATE_EOF(QUOTE):
-#line 87 "t2mf.fl"
+#line 86 "t2mf.fl"
 error ("EOF in string"); return EOF;
 	YY_BREAK
 case 47:
 /* rule 47 can match eol */
 YY_RULE_SETUP
-#line 89 "t2mf.fl"
+#line 88 "t2mf.fl"
 lineno++;
 	YY_BREAK
 case 48:
 /* rule 48 can match eol */
 YY_RULE_SETUP
-#line 90 "t2mf.fl"
+#line 89 "t2mf.fl"
 lineno++; eol_seen++; BEGIN(0); return EOL;
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 92 "t2mf.fl"
+#line 91 "t2mf.fl"
 BEGIN (0); return ERR;
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 93 "t2mf.fl"
+#line 92 "t2mf.fl"
 BEGIN (0); return ERR;
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 94 "t2mf.fl"
+#line 93 "t2mf.fl"
 return ERR;
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 95 "t2mf.fl"
+#line 94 "t2mf.fl"
 return ERR;
 	YY_BREAK
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(HEX):
-#line 97 "t2mf.fl"
+#line 96 "t2mf.fl"
 return EOF;
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 99 "t2mf.fl"
+#line 98 "t2mf.fl"
 YY_FATAL_ERROR( "flex scanner jammed" );
 	YY_BREAK
-#line 1496 "lex.yy.c"
+#line 1495 "lex.yy.c"
 
 	case YY_END_OF_BUFFER:
 		{
@@ -2491,6 +2490,6 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 99 "t2mf.fl"
+#line 98 "t2mf.fl"
 
 
