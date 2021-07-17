@@ -882,7 +882,7 @@ mfwrite(int format, int ntracks, int division, FILE *fp) {
     mf_w_header_chunk(format,ntracks,division);
 
     /* In format 1 files, the first track is a tempo map */
-    if (format == 1 && ( Mf_wtempotrack )) {
+    if (format == 1 && Mf_wtempotrack) {
         mf_w_track_chunk(1, fp);
         ntracks--;
     }
