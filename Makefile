@@ -28,7 +28,6 @@ TESTED: $(PROGS)
 	./mf2t < orig/example3.mid | cmp orig/example3.txt -
 	./mf2t < orig/example4.mid | cmp orig/example4.txt -
 	./mf2t < orig/example5.mid | cmp orig/example5.txt -
-	./mf2t < orig/example1.mid > temp.txt
 	./t2mf -r < orig/example1.txt > temp.mid
 	cmp orig/example1.mid temp.mid
 	./t2mf -r < orig/example2.txt > temp.mid
@@ -39,6 +38,8 @@ TESTED: $(PROGS)
 	cmp orig/example4.mid temp.mid
 	./t2mf -r < orig/example5.txt > temp.mid
 	cmp orig/example5.mid temp.mid
+	rm -f temp.mid
+	date > TESTED
 
 $(MF2TPROG): $(MF2TOBJS)
 	$(CC) $(LDFLAGS) -o $(MF2TPROG) $(MF2TOBJS)
@@ -61,4 +62,5 @@ install: $(PROGS)
 	$(INSTALL) -m 755 -s $(PROGS) $(BINDIR)
 
 clean:
-	rm -f $(PROGS) $(OBJS)
+	rm -f $(PROGS) $(OBJS) TESTED temp.mid
+
