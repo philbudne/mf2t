@@ -301,7 +301,7 @@ myarbitrary(int leng, char *mess) {
 
 static void
 initfuncs(void) {
-    Mf_error = error;
+    Mf_rerror = error;
     Mf_getc = getchar;
     Mf_header =  myheader;
     Mf_starttrack =  mytrstart;

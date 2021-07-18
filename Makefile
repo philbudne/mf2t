@@ -1,7 +1,14 @@
 LIB=libmidifile-20150710
 
 # also in libmidifile/Makefile!
-CFLAGS = -std=c99 -Wall -Wextra -Wmissing-prototypes -Wmissing-declarations -Werror -pedantic-errors -O2 -g -I$(LIB) $(DEFS)
+WARN=-Wall -Werror -Wextra \
+	-Wmissing-prototypes \
+	-Wmissing-declarations \
+	-Wold-style-definition \
+	-Wpedantic
+
+# __func__ is a C99 feature
+CFLAGS = -std=c99 $(WARN) -O2 -g -I$(LIB) $(DEFS)
 
 #DEFS = -D_POSIX_C_SOURCE=2 -DYY_USE_PROTOS
 DEFS = -D_POSIX_C_SOURCE=200809 -DYY_USE_PROTOS
@@ -11,10 +18,10 @@ INSTALL = install
 BINDIR = $(HOME)/bin
 
 MF2TPROG = mf2t
-MF2TOBJS = mf2t.o midifile.o
+MF2TOBJS = mf2t.o midifile_read.o
 
 T2MFPROG = t2mf
-T2MFOBJS = t2mf.o t2mflex.o midifile.o
+T2MFOBJS = t2mf.o t2mflex.o midifile_write.o
 
 PROGS = $(MF2TPROG) $(T2MFPROG)
 OBJS = $(MF2TOBJS) $(T2MFOBJS)
@@ -56,6 +63,12 @@ t2mflex.o: t2mflex.c
 
 midifile.o: $(LIB)/midifile.c
 	$(CC) -c $(CFLAGS) $(LIB)/midifile.c
+
+midifile_read.o: $(LIB)/midifile_read.c
+	$(CC) -c $(CFLAGS) $(LIB)/midifile_read.c
+
+midifile_write.o: $(LIB)/midifile_write.c
+	$(CC) -c $(CFLAGS) $(LIB)/midifile_write.c
 
 install: $(PROGS)
 	$(INSTALL) -d $(BINDIR)

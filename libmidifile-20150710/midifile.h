@@ -22,11 +22,14 @@ typedef uint32_t mf_size_t;
 typedef uint32_t mf_deltat_t;
 typedef uint32_t mf_ticks_t;
 typedef uint8_t mf_data_t;
+typedef int32_t mf_ssize_t;		/* internal */
+typedef int32_t mf_varinum_t;		/* internal */
 
 /* $Id: midifile.h,v 1.3 1991/11/03 21:50:50 piet Rel $ */
+
 /* definitions for MIDI file parsing code */
-#define MIDIFILE_FUNCTIONS \
-    /* functions for reading a MIDI file */ \
+/* functions for reading a MIDI file */
+#define MIDIFILE_READ_FUNCTIONS \
     MIDIFILE_FUNC(int, Mf_getc, (void)) /* stdio getchar signature */ \
     MIDIFILE_FUNC(void,Mf_header, (int format, int ntrks, int division)) \
     MIDIFILE_FUNC(void,Mf_starttrack, (void)) \
@@ -49,11 +52,16 @@ typedef uint8_t mf_data_t;
     MIDIFILE_FUNC(void,Mf_tempo, (mf_tempo_t tempo)) \
     MIDIFILE_FUNC(void,Mf_keysig, (int sf, int mi)) \
     MIDIFILE_FUNC(void,Mf_arbitrary, (int leng, char *mess)) \
-    MIDIFILE_FUNC(void,Mf_error, (char *s)) \
-    /* functions for writing a MIDI file */ \
+    MIDIFILE_FUNC(void,Mf_rerror, (char *s))
+
+/* functions for writing a MIDI file */
+#define MIDIFILE_WRITE_FUNCTIONS \
     MIDIFILE_FUNC(int,Mf_putc, (int)) /* stdio getchar signature */ \
     MIDIFILE_FUNC(void,Mf_wtrack, (void)) \
-    MIDIFILE_FUNC(void,Mf_wtempotrack, (int))
+    MIDIFILE_FUNC(void,Mf_wtempotrack, (int)) \
+    MIDIFILE_FUNC(void,Mf_werror, (char *s))
+
+#define MIDIFILE_FUNCTIONS MIDIFILE_READ_FUNCTIONS MIDIFILE_WRITE_FUNCTIONS
 
 /* create externs for all MIDIFILE_FUNCs */
 #define MIDIFILE_FUNC(RET,NAME,ARGS) MIDIFILE_PUBLIC extern RET (*NAME)ARGS;
