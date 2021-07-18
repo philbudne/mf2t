@@ -11,8 +11,8 @@
 #ifdef _WIN32
 #include <io.h>
 #include "getopt.h"
-#else
-#include <unistd.h>		    /* requires _POSIX_C_SOURCE >=2 */
+#elif _POSIX_C_SOURCE >=2
+#include <unistd.h>
 #endif
 #include <errno.h>
 #include <ctype.h>
@@ -20,10 +20,6 @@
 
 #include "t2mf.h"
 #include "version.h"
-
-#ifdef NO_YYLENG_VAR
-#define	yyleng yylength
-#endif
 
 static jmp_buf erjump;
 static int err_cont = 0;
@@ -42,8 +38,8 @@ yywrap(void) {
     return 1;
 }
 
-static void
-error(char *s) {
+void					/* used in t2mf.fl */
+error(const char *s) {
     fprintf(stderr, "Error: %s\n", s);
 }
 
@@ -53,11 +49,11 @@ prs_error(char *s) {			/* parse error */
     int count;
     int ln = (eol_seen? lineno-1 : lineno);
     fprintf(stderr, "%d: %s\n", ln, s);
-    if (yyleng > 0 && *yytext != '\n')
-        fprintf(stderr, "*** %*s ***\n", yyleng, yytext);
+    if (gyyleng() > 0 && *yytext != '\n')
+        fprintf(stderr, "*** %*s ***\n", (int)gyyleng(), yytext);
     count = 0;
     /* skip rest of line */
-    while (count < 100 && (c=yylex()) != EOL && c != EOF) count++;
+    while (count < 100 && (c = yylex()) != EOL && c != EOF) count++;
     if (c == EOF) exit(1);
     if (err_cont)
         longjmp(erjump, 1);
@@ -131,7 +127,7 @@ checkchan(void) {
 
 static void
 checknote(void) {
-    int c;
+    int c = -9;
     if (yylex() != NOTE || ((c=yylex()) != INT && c != NOTEVAL))
         syntax();
     if (c == NOTEVAL) {
@@ -229,14 +225,15 @@ gethex(void) {
     c = yylex();
     if (c == STRING) {
         /* Note: yytext includes the trailing, but not the starting quote */
-        int i = 0;
-    	if (yyleng-1 > (int)bufsiz) {
-            bufsiz = yyleng-1;
+        size_t i = 0;
+	size_t tsize = gyyleng() - 1;
+    	if (tsize > bufsiz) {
+            bufsiz = tsize;
 	    buffer = realloc(buffer, bufsiz);
             if (!buffer)
 		error("string buffer realloc failed");
         }
-        while (i < yyleng-1) {
+        while (i < tsize) {
             c = yytext[i++];
 rescan:
             if (c == '\\') {

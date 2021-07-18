@@ -4,15 +4,16 @@
 
 #include "t2mf.h"
 
-#ifdef NO_YYLENG_VAR
-int yylength;
-#define YY_USER_ACTION	yylength = yyleng
-#endif
-
 int do_hex = 0;
 int eol_seen = 0;
 int lineno = 1;
 int32_t yyval;
+
+/* yyleng int in flex 2.6.4, yy_size_t in Apple 2.5.35? */
+size_t
+gyyleng(void) {
+    return yyleng;
+}
 
 %}
 

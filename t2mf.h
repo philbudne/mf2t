@@ -49,16 +49,18 @@
 #define TIMESIG	(META+1+time_signature)
 #define SMPTE	(META+1+smpte_offset)
 
-extern int yywrap ( void );
+extern int yywrap(void);
+extern void error(const char *);
 
 typedef int32_t bankno_t;
 bankno_t bankno(char *s, int n);
 
 extern int32_t yyval;
 
+extern size_t gyyleng(void);
+
 /* from (f)lex template: */
 extern int yylex(void);
-extern int yyleng;
 extern int lineno;
 extern char *yytext;
 extern int do_hex;
