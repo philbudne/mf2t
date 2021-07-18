@@ -344,6 +344,17 @@ readheader(void) {			/* read a header chunk */
         (void) egetc();
 }
 
+static mf_varinum_t
+get_lookfor(void) {
+#if 0
+    /* This doesn't work with GCC (starting with gcc4?) */
+    return Mf_toberead - readvarinum();
+#else
+    mf_varinum_t tmp = readvarinum();
+    return Mf_toberead - tmp;
+#endif
+}
+
 static int
 readtrack(void) {			/* read a track chunk */
     /* This array is indexed by the high half of a status byte.  It’s */
@@ -353,7 +364,7 @@ readtrack(void) {			/* read a track chunk */
         0, 0, 0, 0, 0, 0, 0, 0,    /* 0x00 through 0x70 */
         2, 2, 2, 2, 1, 1, 2, 0     /* 0x80 through 0xf0 */
     };
-    mf_varinum_t varinum, lookfor;
+    mf_varinum_t lookfor;
     int c, c1 = 0, type;
     int sysexcontinue = 0; /* 1 if last message was an unfinished sysex */
     int running = 0;       /* 1 when running status used */
@@ -400,12 +411,7 @@ readtrack(void) {			/* read a track chunk */
         switch (c) {
 	case 0xff:     /* meta event */
 	    type = egetc();
-	    /*
-	     * This doesn’t work with GCC
-	     * lookfor = Mf_toberead - readvarinum();
-	     */
-	    varinum = readvarinum();
-	    lookfor = Mf_toberead - varinum;
+	    lookfor = get_lookfor();
 	    msginit();
 
 	    while (Mf_toberead > lookfor)
@@ -415,12 +421,7 @@ readtrack(void) {			/* read a track chunk */
 	    break;
 
 	case 0xf0:     /* start of system exclusive */
-	    /*
-	     * This doesn’t work with GCC
-	     * lookfor = Mf_toberead - readvarinum();
-	     */
-	    varinum = readvarinum();
-	    lookfor = Mf_toberead - varinum;
+	    lookfor = get_lookfor();
 	    msginit();
 	    msgadd(0xf0);
 
@@ -434,13 +435,7 @@ readtrack(void) {			/* read a track chunk */
 	    break;
 
 	case 0xf7:     /* sysex continuation or arbitrary stuff */
-	    /*
-	     * This doesn’t work with GCC
-	     * lookfor = Mf_toberead - readvarinum();
-	     */
-	    varinum = readvarinum();
-	    lookfor = Mf_toberead - varinum;
-
+	    lookfor = get_lookfor();
 	    if (! sysexcontinue)
 		msginit();
 

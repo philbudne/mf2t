@@ -31,18 +31,17 @@ static int err_cont = 0;
 static int TrkNr;
 static int Format, Ntrks;
 static int Measure, M0, Beat, Clicks;
-static long T0;
+static mf_ticks_t T0;
 static char* buffer = 0;
 static int bufsiz = 0, buflen;
 
 extern int yylex(void);
-extern long yyval;
 extern int yyleng;
 extern int lineno;
 extern char *yytext;
 extern int do_hex;
 extern int eol_seen;
-extern FILE  *yyin;
+extern FILE *yyin;
 
 static void checkeol(void);
 
@@ -72,13 +71,13 @@ prs_error(char *s) {			/* parse error */
         longjmp(erjump, 1);
 }
 
-static void syntax(void)
-{
+static void
+syntax(void) {
     prs_error("Syntax error");
 }
 
-static int getint(char *mess)
-{
+static int
+getint(char *mess) {
     char ermesg[100];
     if (yylex() != INT) {
         sprintf(ermesg, "Integer expected for %s", mess);
@@ -88,20 +87,20 @@ static int getint(char *mess)
     return yyval;
 }
 
-static int getbyte(char *mess)
-{
+static int
+getbyte(char *mess) {
     char ermesg[100];
     getint(mess);
     if (yyval < 0 || yyval > 127) {
-        sprintf(ermesg, "Wrong value (%ld) for %s", yyval, mess);
+        sprintf(ermesg, "Wrong value (%d) for %s", yyval, mess);
         error(ermesg);
         yyval = 0;
     }
     return yyval;
 }
 
-static void translate(void)
-{
+static void
+translate(void) {
     int c;
 
     /* Skip byte order mark */
@@ -127,12 +126,11 @@ static void translate(void)
     }
 }
 
-char data[5];
-int chan;
+static char data[5];
+static int chan;
 
 static void
-checkchan(void)
-{
+checkchan(void) {
     if (yylex() != CH || yylex() != INT) syntax();
     if (yyval < 1 || yyval > 16)
         error("Chan must be between 1 and 16");
@@ -253,30 +251,30 @@ gethex(void) {
 rescan:
             if (c == '\\') {
                 switch (c = yytext[i++]) {
-                    case '0':
-                        c = '\0';
-                        break;
-                    case 'n':
-                        c = '\n';
-                        break;
-                    case 'r':
-                        c = '\r';
-                        break;
-                    case 't':
-                        c = '\t';
-                        break;
-                    case 'x':
-                        if (sscanf(yytext+i, "%2x", &u) != 1)
-                            prs_error("Illegal \\x in string");
-			c = u;
-                        i += 2;
-                        break;
-                    case '\r':
-                    case '\n':
-                        while ((c=yytext[i++]) == ' ' || c == '\t' ||
-			       c == '\r' || c == '\n')
-                            /* skip whitespace */;
-			goto rescan; /* sorry EWD :=) */
+		case '0':
+		    c = '\0';
+		    break;
+		case 'n':
+		    c = '\n';
+		    break;
+		case 'r':
+		    c = '\r';
+		    break;
+		case 't':
+		    c = '\t';
+		    break;
+		case 'x':
+		    if (sscanf(yytext+i, "%2x", &u) != 1)
+			prs_error("Illegal \\x in string");
+		    c = u;
+		    i += 2;
+		    break;
+		case '\r':
+		case '\n':
+		    while ((c=yytext[i++]) == ' ' || c == '\t' ||
+			   c == '\r' || c == '\n')
+			/* skip whitespace */;
+		    goto rescan; /* sorry EWD :=) */
                 }
             }
             buffer[buflen++] = c;
@@ -302,8 +300,8 @@ rescan:
     else prs_error("String or hex input expected");
 }
 
-bankno_t bankno(char *s, int n)
-{
+bankno_t
+bankno(char *s, int n) {		/* used by t2mflex */
     bankno_t res = 0;
     int c;
     while (n-- > 0) {
@@ -357,163 +355,163 @@ mywritetrack(void) {
                 }
                 delta = newtime - currtime;
                 switch (opcode) {
-                    case ON:
-                    case OFF:
-                    case POPR:
-                        checkchan();
-                        checknote();
-                        checkval();
-                        mf_w_midi_event(delta, opcode, chan,
-                                (unsigned char *)data, 2L);
-                        break;
+		case ON:
+		case OFF:
+		case POPR:
+		    checkchan();
+		    checknote();
+		    checkval();
+		    mf_w_midi_event(delta, opcode, chan,
+				    (unsigned char *)data, 2L);
+		    break;
 
-                    case PAR:
-                        checkchan();
-                        checkcon();
-                        checkval();
-                        mf_w_midi_event(delta, opcode, chan,
-                                (unsigned char *)data, 2L);
-                        break;
+		case PAR:
+		    checkchan();
+		    checkcon();
+		    checkval();
+		    mf_w_midi_event(delta, opcode, chan,
+				    (unsigned char *)data, 2L);
+		    break;
 		
-                    case PB:
-                        checkchan();
-                        splitval();
-                        mf_w_midi_event(delta, opcode, chan,
-                                (unsigned char *)data, 2L);
-                        break;
+		case PB:
+		    checkchan();
+		    splitval();
+		    mf_w_midi_event(delta, opcode, chan,
+				    (unsigned char *)data, 2L);
+		    break;
 
-                    case PRCH:
-                        checkchan();
-                        checkprog();
-                        mf_w_midi_event(delta, opcode, chan,
-                                (unsigned char *)data, 1L);
-                        break;
+		case PRCH:
+		    checkchan();
+		    checkprog();
+		    mf_w_midi_event(delta, opcode, chan,
+				    (unsigned char *)data, 1L);
+		    break;
  
-                    case CHPR:
-                        checkchan();
-                        checkval();
-                        data[0] = data[1];
-                        mf_w_midi_event(delta, opcode, chan,
-                                (unsigned char *)data, 1L);
-                        break;
+		case CHPR:
+		    checkchan();
+		    checkval();
+		    data[0] = data[1];
+		    mf_w_midi_event(delta, opcode, chan,
+				    (unsigned char *)data, 1L);
+		    break;
  
-                    case SYSEX:
-                    case ARB:
-                        gethex();
-                        mf_w_sysex_event(delta, (unsigned char *)buffer,
-                                (long)buflen);
-                        break;
+		case SYSEX:
+		case ARB:
+		    gethex();
+		    mf_w_sysex_event(delta, (unsigned char *)buffer,
+				     (long)buflen);
+		    break;
 
-                    case TEMPO:
-                        if (yylex() != INT) syntax();
-                        mf_w_tempo(delta, yyval);
-                        break;
+		case TEMPO:
+		    if (yylex() != INT) syntax();
+		    mf_w_tempo(delta, yyval);
+		    break;
 
-                    case TIMESIG: {
-                        int nn, denom, cc, bb;
-                        if (yylex() != INT || yylex() != '/') syntax();
-                        nn = yyval;
-                        denom = getbyte("Denom");
-                        cc = getbyte("clocks per click");
-                        bb = getbyte("32nd notes per 24 clocks");
-                        for (i = 0, k = 1 ; k < denom; i++, k <<= 1);
-                        if (k != denom) error ("Illegal TimeSig");
-                        data[0] = nn;
-                        data[1] = i;
-                        data[2] = cc;
-                        data[3] = bb;
-                        M0 += (newtime-T0)/(Beat*Measure);
-                        T0 = newtime;
-                        Measure = nn;
-                        Beat = 4 * Clicks / denom;
-                        mf_w_meta_event(delta, time_signature,
-                                (unsigned char *)data, 4L);
-                        break;
-                    }
+		case TIMESIG: {
+		    int nn, denom, cc, bb;
+		    if (yylex() != INT || yylex() != '/') syntax();
+		    nn = yyval;
+		    denom = getbyte("Denom");
+		    cc = getbyte("clocks per click");
+		    bb = getbyte("32nd notes per 24 clocks");
+		    for (i = 0, k = 1 ; k < denom; i++, k <<= 1);
+		    if (k != denom) error ("Illegal TimeSig");
+		    data[0] = nn;
+		    data[1] = i;
+		    data[2] = cc;
+		    data[3] = bb;
+		    M0 += (newtime-T0)/(Beat*Measure);
+		    T0 = newtime;
+		    Measure = nn;
+		    Beat = 4 * Clicks / denom;
+		    mf_w_meta_event(delta, time_signature,
+				    (unsigned char *)data, 4L);
+		    break;
+		}
 
-                    case SMPTE:
-                        for (i=0; i<5; i++)
-                            data[i] = getbyte("SMPTE");
-                        mf_w_meta_event(delta, smpte_offset,
-                                (unsigned char *)data, 5L);
-                        break;
+		case SMPTE:
+		    for (i=0; i<5; i++)
+			data[i] = getbyte("SMPTE");
+		    mf_w_meta_event(delta, smpte_offset,
+				    (unsigned char *)data, 5L);
+		    break;
 
-                    case KEYSIG:
-                        data[0] = i = getint ("Keysig");
-                        if (i < -7 || i > 7)
-                            error ("Key Sig must be between -7 and 7");
-                        if ((c=yylex()) != MINOR && c != MAJOR)
-                            syntax();
-                        data[1] = (c == MINOR);
-                        mf_w_meta_event(delta, key_signature,
-                                (unsigned char *)data, 2L);
-                        break;
+		case KEYSIG:
+		    data[0] = i = getint ("Keysig");
+		    if (i < -7 || i > 7)
+			error ("Key Sig must be between -7 and 7");
+		    if ((c=yylex()) != MINOR && c != MAJOR)
+			syntax();
+		    data[1] = (c == MINOR);
+		    mf_w_meta_event(delta, key_signature,
+				    (unsigned char *)data, 2L);
+		    break;
 
-                    case SEQNR:
-                        get16val ();
-                        mf_w_meta_event(delta, sequence_number,
-                                (unsigned char *)data, 2L);
-                        break;
+		case SEQNR:
+		    get16val ();
+		    mf_w_meta_event(delta, sequence_number,
+				    (unsigned char *)data, 2L);
+		    break;
 
-                    case META: {
-                        int type = yylex();
-                        switch (type) {
-                            case TRKEND:
-                                type = end_of_track;
-                                break;
-                            case TEXT:
-                            case COPYRIGHT:
-                            case SEQNAME:
-                            case INSTRNAME:
-                            case LYRIC:
-                            case MARKER:
-                            case CUE:
-                                type -= (META+1);
-                                break;
-                            case INT:
-                                type = yyval;
-                                break;
-                            default:
-                                prs_error("Illegal Meta type");
-                        }
-                        if (type == end_of_track)
-                            buflen = 0;
-                        else
-                            gethex();
-                        mf_w_meta_event(delta, type,
-                                (unsigned char *)buffer, (long)buflen);
-                        break;
-                    }
+		case META: {
+		    int type = yylex();
+		    switch (type) {
+		    case TRKEND:
+			type = end_of_track;
+			break;
+		    case TEXT:
+		    case COPYRIGHT:
+		    case SEQNAME:
+		    case INSTRNAME:
+		    case LYRIC:
+		    case MARKER:
+		    case CUE:
+			type -= (META+1);
+			break;
+		    case INT:
+			type = yyval;
+			break;
+		    default:
+			prs_error("Illegal Meta type");
+		    }
+		    if (type == end_of_track)
+			buflen = 0;
+		    else
+			gethex();
+		    mf_w_meta_event(delta, type,
+				    (unsigned char *)buffer, (long)buflen);
+		    break;
+		}
 
-                    case SEQSPEC:
-                        gethex();
-                        mf_w_meta_event(delta, sequencer_specific,
-                                (unsigned char *)buffer, (long)buflen);
-                        break;
+		case SEQSPEC:
+		    gethex();
+		    mf_w_meta_event(delta, sequencer_specific,
+				    (unsigned char *)buffer, (long)buflen);
+		    break;
 
-                    default:
-                        prs_error("Unknown input");
-                        break;
+		default:
+		    prs_error("Unknown input");
+		    break;
                 }
                 currtime = newtime;
-            case EOL:
-                break;
-            default:
-                prs_error("Unknown input");
-                break;
+	case EOL:
+	    break;
+	default:
+	    prs_error("Unknown input");
+	    break;
         }
         checkeol();
     }
-}
+} // mywritetrack
 
-static void initfuncs(void)
-{
+static void
+initfuncs(void) {
     Mf_putc = putchar;
     Mf_wtrack = mywritetrack;
 }
 
-static void usage(void)
-{
+static void
+usage(void) {
     fprintf(stderr,
 "t2mf v%s\n"
 "Usage: t2mf [Options] [textfile [midifile]]\n\n"
@@ -523,22 +521,22 @@ static void usage(void)
     exit(1);
 }
 
-int main(int argc, char **argv)
-{
+int
+main(int argc, char **argv) {
     int c;
 
     while ((c = getopt(argc, argv, "rh")) != -1) {
         switch (c) {
-            case 'r':
-                Mf_RunStat = 1;
-                break;
-	    case 'd':
-		Mf_trace_output = 1;
-		break;
-            case 'h':
-            case '?':
-            default:
-                usage();
+	case 'r':
+	    Mf_RunStat = 1;
+	    break;
+	case 'd':
+	    Mf_trace_output = 1;
+	    break;
+	case 'h':
+	case '?':
+	default:
+	    usage();
         }
     }
 

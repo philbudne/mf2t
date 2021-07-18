@@ -75,5 +75,5 @@ install: $(PROGS)
 	$(INSTALL) -m 755 -s $(PROGS) $(BINDIR)
 
 clean:
-	rm -f $(PROGS) $(OBJS) TESTED temp.mid
+	rm -f $(PROGS) $(OBJS) TESTED temp.mid t2mflex.c
 
