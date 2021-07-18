@@ -116,7 +116,7 @@ readvarinum(void) {
 
 static int32_t
 to32bit(int c1, int c2, int c3, int c4) {
-    long value = 0L;
+    int32_t value = 0L;
 
     value = (c1 & 0xff);
     value = (value<<8) + (c2 & 0xff);
@@ -147,32 +147,6 @@ read16bit(void) {
     c1 = egetc();
     c2 = egetc();
     return to16bit(c1, c2);
-}
-
-/* 
- * This routine converts delta times in ticks into seconds. The
- * else statement is needed because the formula is different for tracks
- * based on notes and tracks based on SMPTE times.
- *
- */
-MIDIFILE_PUBLIC float
-mf_ticks2sec(mf_ticks_t ticks, int division, mf_tempo_t tempo) {
-    float smpte_format, smpte_resolution;
-
-    if (division > 0)
-        return ((float) (((float)(ticks) * (float)(tempo)) /
-                ((float)(division) * 1000000.0)));
-    else {
-        smpte_format = upperbyte(division);
-        smpte_resolution = lowerbyte(division);
-        return (float) ((float) ticks / (smpte_format * smpte_resolution *
-                1000000.0));
-    }
-} /* end of ticks2sec() */
-
-MIDIFILE_PUBLIC mf_ticks_t
-mf_sec2ticks(float secs, int division, unsigned int tempo) {    
-    return (long)(((secs * 1000.0) / 4.0 * division) / tempo);
 }
 
 /* The code below allows collection of a system exclusive message of */
