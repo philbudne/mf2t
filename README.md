@@ -1,7 +1,7 @@
 Fork of https://github.com/dewhisna/mf2t
 a fork of https://github.com/codenotes/mf2t
 
-# Goals:
+## Goals
 * ***FULLY*** ANSIfied (using C99 \_\_func\_\_)
 * eliminate use of "long" for 32-bit values!!!
 * using 
@@ -12,8 +12,8 @@ a fork of https://github.com/codenotes/mf2t
 * added t2mf '-d' option to display how/why bytes are output.
 * added midifile_read.c get_lookfor(); explain why change needed.
 
-# Non-priorities (none have been intentionally broken in source files):
+## Non-priorities (none have been intentionally broken in source files)
 * shared library support
 * install of library/include files
 * CMake support
-* Windows support
+* Windows support (did remove mf2t(?) directory; prevented making binary)
