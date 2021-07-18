@@ -43,8 +43,7 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <stdlib.h>			/* exit */
 
 #include "midifile.h"
 
@@ -52,12 +51,10 @@
 #include "windows.h"
 #endif
 
-#define NULLFUNC 0
-
 /* public stuff */
 
-/* declare pointers to read/write functions */
-#define MIDIFILE_FUNC(RET,NAME,ARGS) MIDIFILE_PUBLIC RET (*NAME)ARGS = NULLFUNC;
+/* declare storage for pointers to write functions */
+#define MIDIFILE_FUNC(RET,NAME,ARGS) MIDIFILE_PUBLIC RET (*NAME)ARGS = NULL;
 MIDIFILE_WRITE_FUNCTIONS
 #undef MIDIFILE_FUNC
 
@@ -88,7 +85,7 @@ static int
 _eputc(unsigned char c) {
     int return_val;
 
-    if ((Mf_putc) == NULLFUNC) {
+    if ((Mf_putc) == NULL) {
         mferror("Mf_putc undefined");
         return(-1);
     }
@@ -436,10 +433,10 @@ MIDIFILE_PUBLIC void
 mfwrite(int format, int ntracks, int division, FILE *fp) {
     int i;
 
-    if (Mf_putc == NULLFUNC)
+    if (Mf_putc == NULL)
         mferror("mfmf_write() called without setting Mf_putc");
 
-    if (Mf_wtrack == NULLFUNC)
+    if (Mf_wtrack == NULL)
         mferror("mfmf_write() called without setting Mf_mf_writetrack"); 
 
     /* every MIDI file starts with a header */

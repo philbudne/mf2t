@@ -1,17 +1,16 @@
 LIB=libmidifile-20150710
 
-# also in libmidifile/Makefile!
 WARN=-Wall -Werror -Wextra \
 	-Wmissing-prototypes \
 	-Wmissing-declarations \
 	-Wold-style-definition \
 	-Wpedantic
 
+# _POSIX_C_SOURCE >= 2 for getopt
+DEFS = -D_POSIX_C_SOURCE=200809 -DYY_USE_PROTOS
+
 # __func__ is a C99 feature
 CFLAGS = -std=c99 $(WARN) -O2 -g -I$(LIB) $(DEFS)
-
-#DEFS = -D_POSIX_C_SOURCE=2 -DYY_USE_PROTOS
-DEFS = -D_POSIX_C_SOURCE=200809 -DYY_USE_PROTOS
 
 INSTALL = install
 
@@ -73,7 +72,11 @@ midifile_write.o: $(LIB)/midifile_write.c
 install: $(PROGS)
 	$(INSTALL) -d $(BINDIR)
 	$(INSTALL) -m 755 -s $(PROGS) $(BINDIR)
-
 clean:
 	rm -f $(PROGS) $(OBJS) TESTED temp.mid t2mflex.c
 
+midifile_read.o: $(LIB)/midifile_read.c $(LIB)/midifile.h
+midifile_write.o: $(LIB)/midifile_write.c $(LIB)/midifile.h
+mf2t.o: mf2t.c $(LIB)/midifile.h version.h
+t2mf.o: t2mf.c t2mf.h $(LIB)/midifile.h version.h
+t2mflex.o: t2mflex.c t2mf.h $(LIB)/midifile.h

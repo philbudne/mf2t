@@ -44,18 +44,18 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdlib.h>			/* realloc, exit */
 #include <string.h>
-
-#include "midifile.h"
 
 #ifdef _WIN32
 #include "windows.h"
 #endif
 
+#include "midifile.h"
+
 /* public stuff */
 
-/* declare pointers to read/write functions */
+/* declare storage for pointers to read functions */
 #define MIDIFILE_FUNC(RET,NAME,ARGS) MIDIFILE_PUBLIC RET (*NAME)ARGS = NULL;
 MIDIFILE_READ_FUNCTIONS
 #undef MIDIFILE_FUNC
@@ -80,7 +80,7 @@ static void
 badbyte(int c) {
     char buff[32];
 
-    (void) sprintf(buff,"unexpected byte: 0x%02x",c);
+    (void) sprintf(buff,"unexpected byte: %#02x",c);
     mferror(buff);
 }
 
@@ -88,22 +88,18 @@ static int
 egetc(void) {		/* read a single character and abort on EOF */
     int c = Mf_getc();
 
-    if ((c == EOF) || feof(stdin))
+    if (c == EOF || feof(stdin))
         mferror("premature EOF");
     Mf_toberead--;
     return(c);
 }
 
-/* readvarinum – read a varying‐length number, and return the */
-/* number of characters it took. */
-
 static mf_varinum_t
-readvarinum(void) {
+readvarinum(void) {		    /* read a varying-length number */
     mf_varinum_t value;
     int c;
 
-    c = egetc();
-    value = c;
+    value = c = egetc();
     if (c & 0x80) {
         value &= 0x7f;
         do {
@@ -116,7 +112,7 @@ readvarinum(void) {
 
 static int32_t
 to32bit(int c1, int c2, int c3, int c4) {
-    int32_t value = 0L;
+    int32_t value = 0;
 
     value = (c1 & 0xff);
     value = (value<<8) + (c2 & 0xff);
@@ -174,35 +170,14 @@ msgleng(void) {
 }
 
 static void
-biggermsg(void) {
-    char *newmess;
-    char *oldmess = Msgbuff;
-    int oldleng = Msgsize;
-
-    Msgsize += MSGINCREMENT;
-    newmess = (char *)malloc((unsigned)(sizeof(char)*Msgsize));
-
-    if (newmess == NULL)
-        mferror("malloc error!");
-
-    /* copy old message into larger new one */
-    if (oldmess != NULL) {
-        register char *p = newmess;
-        register char *q = oldmess;
-        register char *endq = &oldmess[oldleng];
-
-        for (; q!=endq; p++, q++)
-            *p = *q;
-        free(oldmess);
-    }
-    Msgbuff = newmess;
-}
-
-static void
 msgadd(int c) {
     /* If necessary, allocate larger message buffer. */
-    if (Msgindex >= Msgsize)
-        biggermsg();
+    if (Msgindex >= Msgsize) {
+	Msgsize += MSGINCREMENT;
+	Msgbuff = realloc(Msgbuff, Msgsize);
+	if (!Msgbuff)
+	    mferror("msgadd: realloc failed!");
+    }
     Msgbuff[Msgindex++] = c;
 }
 
@@ -347,11 +322,15 @@ readheader(void) {			/* read a header chunk */
 static mf_varinum_t
 get_lookfor(void) {
 #if 0
-    /* This doesn't work with GCC (starting with gcc4?) */
+    /*
+     * readvarinum has the side effect of updating Mf_toberead.
+     * stopped working w/ gcc4.
+     */
     return Mf_toberead - readvarinum();
 #else
-    mf_varinum_t tmp = readvarinum();
-    return Mf_toberead - tmp;
+    /* force order of evaluation: */
+    mf_varinum_t i = readvarinum();
+    return Mf_toberead - i;
 #endif
 }
 
@@ -402,7 +381,7 @@ readtrack(void) {			/* read a track chunk */
         needed = chantype[(c>>4) & 0xf];
 
         if (needed) { /* ie. is it a channel message? */
-            if (! running)
+            if (!running)
                 c1 = egetc();
             chanmessage(status, c1, (needed>1) ? egetc() : 0);
             continue;;
@@ -436,13 +415,13 @@ readtrack(void) {			/* read a track chunk */
 
 	case 0xf7:     /* sysex continuation or arbitrary stuff */
 	    lookfor = get_lookfor();
-	    if (! sysexcontinue)
+	    if (!sysexcontinue)
 		msginit();
 
 	    while (Mf_toberead > lookfor)
 		msgadd(c=egetc());
 
-	    if ( ! sysexcontinue ) {
+	    if (!sysexcontinue) {
 		if (Mf_arbitrary)
 		    Mf_arbitrary(msgleng(),msg());
 	    } else if (c == 0xf7) {

@@ -53,6 +53,16 @@ extern int yywrap ( void );
 
 typedef int32_t bankno_t;
 bankno_t bankno(char *s, int n);
-#endif
 
 extern int32_t yyval;
+
+/* from (f)lex template: */
+extern int yylex(void);
+extern int yyleng;
+extern int lineno;
+extern char *yytext;
+extern int do_hex;
+extern int eol_seen;
+extern FILE *yyin;
+#endif
+

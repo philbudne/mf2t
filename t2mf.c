@@ -32,16 +32,8 @@ static int TrkNr;
 static int Format, Ntrks;
 static int Measure, M0, Beat, Clicks;
 static mf_ticks_t T0;
-static char* buffer = 0;
-static int bufsiz = 0, buflen;
-
-extern int yylex(void);
-extern int yyleng;
-extern int lineno;
-extern char *yytext;
-extern int do_hex;
-extern int eol_seen;
-extern FILE *yyin;
+static mf_data_t *buffer = 0;
+static mf_size_t bufsiz = 0, buflen;
 
 static void checkeol(void);
 
@@ -126,7 +118,7 @@ translate(void) {
     }
 }
 
-static char data[5];
+static mf_data_t data[5];
 static int chan;
 
 static void
@@ -238,13 +230,11 @@ gethex(void) {
     if (c == STRING) {
         /* Note: yytext includes the trailing, but not the starting quote */
         int i = 0;
-    	if (yyleng-1 > bufsiz) {
+    	if (yyleng-1 > (int)bufsiz) {
             bufsiz = yyleng-1;
-            if (buffer)
-                buffer = realloc(buffer, bufsiz);
-            else
-                buffer = malloc(bufsiz);
-            if (! buffer) error("Out of memory");
+	    buffer = realloc(buffer, bufsiz);
+            if (!buffer)
+		error("string buffer realloc failed");
         }
         while (i < yyleng-1) {
             c = yytext[i++];
@@ -283,11 +273,9 @@ rescan:
         do {
     	    if (buflen >= bufsiz) {
                 bufsiz += 128;
-                if (buffer)
-                    buffer = realloc(buffer, bufsiz);
-                else
-                    buffer = malloc(bufsiz);
-                if (! buffer) error("Out of memory");
+		buffer = realloc(buffer, bufsiz);
+                if (!buffer)
+		    error("int buffer realloc failed");
             }
 /* This test not applicable for sysex
             if (yyval < 0 || yyval > 127)
@@ -324,7 +312,8 @@ mywritetrack(void) {
     mf_deltat_t newtime, delta;
     int i, k;
  
-    while ((opcode = yylex()) == EOL);
+    while ((opcode = yylex()) == EOL)
+	;
     if (opcode != MTRK)
         prs_error("Missing MTrk");
     checkeol();
@@ -345,8 +334,9 @@ mywritetrack(void) {
                 return;
             case INT:
                 newtime = yyval;
-                if ((opcode=yylex())=='/') {
-                    if (yylex()!=INT) prs_error("Illegal time value");
+                if ((opcode = yylex()) == '/') {
+                    if (yylex() != INT)
+			prs_error("Illegal time value");
                     newtime = (newtime-M0)*Measure+yyval;
                     if (yylex() != '/' || yylex() != INT)
                         prs_error("Illegal time value");
@@ -398,8 +388,7 @@ mywritetrack(void) {
 		case SYSEX:
 		case ARB:
 		    gethex();
-		    mf_w_sysex_event(delta, (unsigned char *)buffer,
-				     (long)buflen);
+		    mf_w_sysex_event(delta, buffer, buflen);
 		    break;
 
 		case TEMPO:
@@ -424,33 +413,29 @@ mywritetrack(void) {
 		    T0 = newtime;
 		    Measure = nn;
 		    Beat = 4 * Clicks / denom;
-		    mf_w_meta_event(delta, time_signature,
-				    (unsigned char *)data, 4L);
+		    mf_w_meta_event(delta, time_signature, data, 4);
 		    break;
 		}
 
 		case SMPTE:
 		    for (i=0; i<5; i++)
 			data[i] = getbyte("SMPTE");
-		    mf_w_meta_event(delta, smpte_offset,
-				    (unsigned char *)data, 5L);
+		    mf_w_meta_event(delta, smpte_offset, data, 5);
 		    break;
 
 		case KEYSIG:
 		    data[0] = i = getint ("Keysig");
 		    if (i < -7 || i > 7)
-			error ("Key Sig must be between -7 and 7");
-		    if ((c=yylex()) != MINOR && c != MAJOR)
+			error("Key Sig must be between -7 and 7");
+		    if ((c = yylex()) != MINOR && c != MAJOR)
 			syntax();
 		    data[1] = (c == MINOR);
-		    mf_w_meta_event(delta, key_signature,
-				    (unsigned char *)data, 2L);
+		    mf_w_meta_event(delta, key_signature, data, 2);
 		    break;
 
 		case SEQNR:
-		    get16val ();
-		    mf_w_meta_event(delta, sequence_number,
-				    (unsigned char *)data, 2L);
+		    get16val();
+		    mf_w_meta_event(delta, sequence_number, data, 2);
 		    break;
 
 		case META: {
@@ -478,15 +463,13 @@ mywritetrack(void) {
 			buflen = 0;
 		    else
 			gethex();
-		    mf_w_meta_event(delta, type,
-				    (unsigned char *)buffer, (long)buflen);
+		    mf_w_meta_event(delta, type, buffer, buflen);
 		    break;
 		}
 
 		case SEQSPEC:
 		    gethex();
-		    mf_w_meta_event(delta, sequencer_specific,
-				    (unsigned char *)buffer, (long)buflen);
+		    mf_w_meta_event(delta, sequencer_specific, buffer, buflen);
 		    break;
 
 		default:
