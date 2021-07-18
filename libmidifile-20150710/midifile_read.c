@@ -72,7 +72,7 @@ static mf_ssize_t Mf_toberead = 0;
 static void
 mferror(char *s) {
     if (Mf_rerror)
-        (*Mf_rerror)(s);
+        Mf_rerror(s);
     exit(1);
 }
 
@@ -86,7 +86,7 @@ badbyte(int c) {
 
 static int
 egetc(void) {		/* read a single character and abort on EOF */
-    int c = (*Mf_getc)();
+    int c = Mf_getc();
 
     if ((c == EOF) || feof(stdin))
         mferror("premature EOF");
@@ -214,7 +214,7 @@ metaevent(int type) {
     switch (type) {
     case 0x00:
 	if (Mf_seqnum)
-            (*Mf_seqnum)(to16bit(m[0],m[1]));
+            Mf_seqnum(to16bit(m[0],m[1]));
 	break;
     case 0x01:      /* Text event */
     case 0x02:      /* Copyright notice */
@@ -233,42 +233,42 @@ metaevent(int type) {
     case 0x0f:
 	/* These are all text events */
 	if (Mf_text)
-	    (*Mf_text)(type,leng,m);
+	    Mf_text(type,leng,m);
 	break;
     case 0x2f:      /* End of Track */
 	if (Mf_eot)
-	    (*Mf_eot)();
+	    Mf_eot();
 	break;
     case 0x51:      /* Set tempo */
 	if (Mf_tempo)
-	    (*Mf_tempo)(to32bit(0,m[0],m[1],m[2]));
+	    Mf_tempo(to32bit(0,m[0],m[1],m[2]));
 	break;
     case 0x54:
 	if (Mf_smpte)
-	    (*Mf_smpte)(m[0],m[1],m[2],m[3],m[4]);
+	    Mf_smpte(m[0],m[1],m[2],m[3],m[4]);
 	break;
     case 0x58:
 	if (Mf_timesig)
-	    (*Mf_timesig)(m[0],m[1],m[2],m[3]);
+	    Mf_timesig(m[0],m[1],m[2],m[3]);
 	break;
     case 0x59:
 	if (Mf_keysig)
-	    (*Mf_keysig)(m[0],m[1]);
+	    Mf_keysig(m[0],m[1]);
 	break;
     case 0x7f:
 	if (Mf_sqspecific)
-	    (*Mf_sqspecific)(leng,m);
+	    Mf_sqspecific(leng,m);
 	break;
     default:
 	if (Mf_metamisc)
-	    (*Mf_metamisc)(type,leng,m);
+	    Mf_metamisc(type,leng,m);
     }
 }
 
 static void
 sysex(void) {
     if (Mf_sysex)
-        (*Mf_sysex)(msgleng(),msg());
+        Mf_sysex(msgleng(),msg());
 }
 
 static void
@@ -278,31 +278,31 @@ chanmessage(int status, int c1, int c2) {
     switch (status & 0xf0) {
     case 0x80:
 	if (Mf_off)
-	    (*Mf_off)(chan, c1, c2);
+	    Mf_off(chan, c1, c2);
 	break;
     case 0x90:
 	if (Mf_on)
-	    (*Mf_on)(chan, c1, c2);
+	    Mf_on(chan, c1, c2);
 	break;
     case 0xa0:
 	if (Mf_pressure)
-	    (*Mf_pressure)(chan, c1, c2);
+	    Mf_pressure(chan, c1, c2);
 	break;
     case 0xb0:
 	if (Mf_parameter)
-	    (*Mf_parameter)(chan, c1, c2);
+	    Mf_parameter(chan, c1, c2);
 	break;
     case 0xe0:
 	if (Mf_pitchbend)
-	    (*Mf_pitchbend)(chan, c1, c2);
+	    Mf_pitchbend(chan, c1, c2);
 	break;
     case 0xc0:
 	if (Mf_program)
-	    (*Mf_program)(chan, c1);
+	    Mf_program(chan, c1);
 	break;
     case 0xd0:
 	if (Mf_chanpressure)
-	    (*Mf_chanpressure)(chan, c1);
+	    Mf_chanpressure(chan, c1);
 	break;
     }
 }
@@ -313,7 +313,7 @@ readmt(char *s) { /* read through the “MThd” or “MTrk” header string */
     char *p = s;
     int c;
 
-    while (n++ < 4 && (c = (*Mf_getc)()) != EOF) {
+    while (n++ < 4 && (c = Mf_getc()) != EOF) {
         if (c != *p++) {
             char buff[32];
             (void) strcpy(buff,"expecting ");
@@ -337,7 +337,7 @@ readheader(void) {			/* read a header chunk */
     division = read16bit();
 
     if (Mf_header)
-        (*Mf_header)(format,ntrks,division);
+        Mf_header(format,ntrks,division);
 
     /* flush any extra stuff, in case the length of header is not 6 */
     while (Mf_toberead > 0)
@@ -378,7 +378,7 @@ readtrack(void) {			/* read a track chunk */
     Mf_currtime = 0;
 
     if (Mf_starttrack)
-        (*Mf_starttrack)();
+        Mf_starttrack();
 
     while (Mf_toberead > 0) {
         Mf_currtime += readvarinum();    /* delta time */
@@ -444,7 +444,7 @@ readtrack(void) {			/* read a track chunk */
 
 	    if ( ! sysexcontinue ) {
 		if (Mf_arbitrary)
-		    (*Mf_arbitrary)(msgleng(),msg());
+		    Mf_arbitrary(msgleng(),msg());
 	    } else if (c == 0xf7) {
 		sysex();
 		sysexcontinue = 0;
@@ -457,7 +457,7 @@ readtrack(void) {			/* read a track chunk */
     }
 
     if (Mf_endtrack)
-        (*Mf_endtrack)();
+        Mf_endtrack();
     return(1);
 }
 

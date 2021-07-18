@@ -79,7 +79,7 @@ static mf_ssize_t Mf_numbyteswritten = 0;
 static void
 mferror(char *s) {
     if (Mf_werror)
-        (*Mf_werror)(s);
+        Mf_werror(s);
     exit(1);
 }
 
@@ -95,7 +95,7 @@ _eputc(unsigned char c) {
 
     if (Mf_trace_output)
 	fprintf(stderr, " %02X", c);
-    return_val = (*Mf_putc)(c);
+    return_val = Mf_putc(c);
 
     if (return_val == EOF)
         mferror("error writing");
@@ -363,9 +363,9 @@ mf_w_track_chunk(int tempo_track, FILE *fp) {
 
     /* "wtempotrack -1 is harmless" */
     if (tempo_track)
-        (*Mf_wtempotrack)(-1);
+        Mf_wtempotrack(-1);
     else
-        (*Mf_wtrack)();
+        Mf_wtrack();
 
     if (laststat != meta_event || lastmeta != end_of_track) {
         /* mf_write End of track meta event */
