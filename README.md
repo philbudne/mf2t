@@ -2,7 +2,7 @@ Fork of https://github.com/dewhisna/mf2t
 a fork of https://github.com/codenotes/mf2t
 
 # Goals:
-* ***FULLY*** ANSIfied (using C99 __func__)
+* ***FULLY*** ANSIfied (using C99 \_\_func\_\_)
 * eliminate use of "long" for 32-bit values!!!
 * using 
 * cranked up warning options
